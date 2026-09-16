@@ -1,0 +1,2 @@
+# DTOs / JSON-serializable models go here.
+# e.g. weather_model.dart (fromJson/toJson, maps to a domain entity)

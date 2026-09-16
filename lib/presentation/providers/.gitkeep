@@ -1,0 +1,3 @@
+# Riverpod providers / view-models go here.
+# e.g. weather_provider.dart (StateNotifierProvider or AsyncNotifierProvider
+# that calls a use case and exposes state to the UI)

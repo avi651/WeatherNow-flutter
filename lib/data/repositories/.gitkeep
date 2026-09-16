@@ -1,0 +1,3 @@
+# Concrete repository implementations go here.
+# e.g. weather_repository_impl.dart (implements domain/repositories interface,
+# uses a data source, maps models -> entities)

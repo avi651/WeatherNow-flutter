@@ -1,0 +1,2 @@
+# Abstract repository contracts (interfaces) go here.
+# e.g. weather_repository.dart (implemented later in data/repositories)
