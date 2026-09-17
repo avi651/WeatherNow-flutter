@@ -11,6 +11,8 @@ class AppEnvironment {
     defaultValue: '',
   );
 
+  static const geocodingBaseUrl = String.fromEnvironment('GEOCODING_BASE_URL');
+
   static const String apiKey = String.fromEnvironment(
     'API_KEY',
     defaultValue: '',
