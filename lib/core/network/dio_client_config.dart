@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import 'api_logging_interceptor.dart';
+
 class DioClientConfig {
   const DioClientConfig({
     required this.baseUrl,
@@ -21,6 +23,6 @@ class DioClientConfig {
         receiveTimeout: receiveTimeout,
         headers: headers,
       ),
-    );
+    )..interceptors.add(const ApiLoggingInterceptor());
   }
 }

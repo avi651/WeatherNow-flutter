@@ -19,9 +19,10 @@ import 'dio_exception_mapper.dart';
 /// either can be swapped for a test double.
 class ApiClient {
   ApiClient({
-    required this._dio,
-    this._exceptionMapper = const DioExceptionMapper(),
-  });
+    required Dio dio,
+    DioExceptionMapper exceptionMapper = const DioExceptionMapper(),
+  }) : _dio = dio,
+       _exceptionMapper = exceptionMapper;
 
   final Dio _dio;
   final DioExceptionMapper _exceptionMapper;

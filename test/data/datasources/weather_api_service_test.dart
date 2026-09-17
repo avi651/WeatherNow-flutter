@@ -8,6 +8,7 @@ import 'package:weather_now_flutter/core/error/weather_api_exception.dart';
 import 'package:weather_now_flutter/core/network/api_client.dart';
 import 'package:weather_now_flutter/core/network/weather_api_params.dart';
 import 'package:weather_now_flutter/data/datasources/weather_api_service.dart';
+import 'package:weather_now_flutter/core/config/app_environment.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
 
@@ -15,7 +16,7 @@ void main() {
   late MockApiClient mockApiClient;
   late WeatherApiService service;
 
-  const apiKey = 'test-api-key';
+  final apiKey = AppEnvironment.apiKey;
   const latitude = 12.34;
   const longitude = 56.78;
 
@@ -49,8 +50,9 @@ void main() {
           queryParameters: expectedQuery,
         ),
       ).thenAnswer(
-        (_) async =>
-            Right(response(WeatherApiEndpoints.currentWeather, data: {'temp': 25})),
+        (_) async => Right(
+          response(WeatherApiEndpoints.currentWeather, data: {'temp': 25}),
+        ),
       );
 
       final result = await service.getCurrentWeather(
@@ -128,10 +130,8 @@ void main() {
       );
 
       expect(
-        () => service.getCurrentWeather(
-          latitude: latitude,
-          longitude: longitude,
-        ),
+        () =>
+            service.getCurrentWeather(latitude: latitude, longitude: longitude),
         throwsA(
           isA<WeatherApiException>().having(
             (e) => e.message,
@@ -176,13 +176,11 @@ void main() {
           queryParameters: any(named: 'queryParameters'),
         ),
       ).thenAnswer(
-        (_) async =>
-            const Left(ServerFailure('Server error', statusCode: 500)),
+        (_) async => const Left(ServerFailure('Server error', statusCode: 500)),
       );
 
       expect(
-        () =>
-            service.getForecast(latitude: latitude, longitude: longitude),
+        () => service.getForecast(latitude: latitude, longitude: longitude),
         throwsA(
           isA<WeatherApiException>()
               .having((e) => e.message, 'message', 'Server error')

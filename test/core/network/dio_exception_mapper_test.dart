@@ -44,6 +44,14 @@ void main() {
       expect(failure, isA<TimeoutFailure>());
     });
 
+    test('maps transformTimeout to TimeoutFailure', () {
+      final failure = mapper.mapDioException(
+        dioError(DioExceptionType.transformTimeout),
+      );
+
+      expect(failure, isA<TimeoutFailure>());
+    });
+
     test('maps cancel to CancelledFailure', () {
       final failure = mapper.mapDioException(dioError(DioExceptionType.cancel));
 

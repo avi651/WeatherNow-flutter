@@ -4,8 +4,9 @@ import '../../core/network/api_client.dart';
 import '../../core/constants/weather_api_endpoints.dart';
 import '../../core/error/weather_api_exception.dart';
 import '../../core/network/weather_api_params.dart';
+import 'weather_data_source.dart';
 
-class WeatherApiService {
+class WeatherApiService implements WeatherDataSource {
   const WeatherApiService({
     required ApiClient apiClient,
     required String apiKey,
@@ -15,6 +16,7 @@ class WeatherApiService {
   final ApiClient _apiClient;
   final String _apiKey;
 
+  @override
   Future<Map<String, dynamic>> getCurrentWeather({
     required double latitude,
     required double longitude,
@@ -22,6 +24,7 @@ class WeatherApiService {
     return _fetch(WeatherApiEndpoints.currentWeather, latitude, longitude);
   }
 
+  @override
   Future<Map<String, dynamic>> getForecast({
     required double latitude,
     required double longitude,

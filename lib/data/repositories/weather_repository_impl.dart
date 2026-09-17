@@ -6,17 +6,19 @@ import '../../core/error/weather_api_exception.dart';
 import '../../domain/entities/current_weather.dart';
 import '../../domain/entities/forecast.dart';
 import '../../domain/repositories/weather_repository.dart';
-import '../datasources/weather_api_service.dart';
+import '../datasources/weather_data_source.dart';
 import '../models/current_weather_model.dart';
 import '../models/forecast_model.dart';
 
-/// Fetches weather data through [WeatherApiService] and translates its raw
-/// JSON and exceptions into domain entities and [Failure]s.
+/// Fetches weather data through a [WeatherDataSource] — the real
+/// [WeatherApiService] or the mock one, depending on [AppEnvironment.isMock]
+/// — and translates its raw JSON and exceptions into domain entities and
+/// [Failure]s.
 class WeatherRepositoryImpl implements WeatherRepository {
-  const WeatherRepositoryImpl({required WeatherApiService apiService})
-      : _apiService = apiService;
+  const WeatherRepositoryImpl({required WeatherDataSource dataSource})
+      : _dataSource = dataSource;
 
-  final WeatherApiService _apiService;
+  final WeatherDataSource _dataSource;
 
   @override
   Future<Either<Failure, CurrentWeather>> getCurrentWeather({
@@ -24,7 +26,7 @@ class WeatherRepositoryImpl implements WeatherRepository {
     required double longitude,
   }) {
     return _run(() async {
-      final json = await _apiService.getCurrentWeather(
+      final json = await _dataSource.getCurrentWeather(
         latitude: latitude,
         longitude: longitude,
       );
@@ -38,7 +40,7 @@ class WeatherRepositoryImpl implements WeatherRepository {
     required double longitude,
   }) {
     return _run(() async {
-      final json = await _apiService.getForecast(
+      final json = await _dataSource.getForecast(
         latitude: latitude,
         longitude: longitude,
       );

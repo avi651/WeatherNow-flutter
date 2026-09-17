@@ -1,10 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:weather_now_flutter/core/config/app_environment.dart';
+import 'package:weather_now_flutter/core/network/api_logging_interceptor.dart';
 import 'package:weather_now_flutter/core/network/dio_client_config.dart';
 
 void main() {
   group('DioClientConfig', () {
+    test('attaches an ApiLoggingInterceptor so requests are diagnosable', () {
+      const config = DioClientConfig(baseUrl: AppEnvironment.baseUrl);
+
+      final dio = config.createDio();
+
+      expect(dio.interceptors.whereType<ApiLoggingInterceptor>(), hasLength(1));
+    });
+
     test('uses the provided base URL', () {
       const config = DioClientConfig(baseUrl: AppEnvironment.baseUrl);
 

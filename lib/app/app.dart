@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+import '../presentation/screens/home_screen.dart';
+
 /// Root widget of the application.
 ///
 /// Keep this file limited to app-level wiring (theme, routes, localization).
@@ -10,8 +13,10 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'App',
-      home: const Scaffold(body: Center(child: Text('Home placeholder'))),
+      title: 'WeatherNow',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark,
+      home: const HomeScreen(),
     );
   }
 }

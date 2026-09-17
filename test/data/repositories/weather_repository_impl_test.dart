@@ -17,7 +17,7 @@ void main() {
 
   setUp(() {
     mockApiService = MockWeatherApiService();
-    repository = WeatherRepositoryImpl(apiService: mockApiService);
+    repository = WeatherRepositoryImpl(dataSource: mockApiService);
   });
 
   Map<String, dynamic> currentWeatherJson() => {
