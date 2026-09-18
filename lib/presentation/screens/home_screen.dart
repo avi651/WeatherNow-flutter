@@ -34,12 +34,33 @@ class HomeScreen extends ConsumerWidget {
     final forecastState = ref.watch(homeForecastProvider);
     final isFavorite = ref.watch(isFavoriteProvider);
     final activeCity = ref.watch(activeCityProvider);
-    final freshness = ref.watch(weatherFreshnessProvider);
+    // Current weather and forecast are fetched independently and can each
+    // fall back to cache on their own, so their freshness is tracked
+    // separately too — this surfaces the banner whenever either one is
+    // stale, instead of one's live fetch masking the other's cached
+    // fallback.
+    final currentWeatherFreshness = ref.watch(currentWeatherFreshnessProvider);
+    final forecastFreshness = ref.watch(forecastFreshnessProvider);
+    final cachedFreshness = currentWeatherFreshness?.isFromCache == true
+        ? currentWeatherFreshness
+        : (forecastFreshness?.isFromCache == true ? forecastFreshness : null);
+
+    // Once there's data to show, a background refresh — e.g. the search
+    // bar's locate-me button invalidating the location and letting
+    // `HomeWeatherNotifier`/`HomeForecastNotifier` transparently refetch —
+    // must not blank the screen. Only the very first load (nothing fetched
+    // yet, from either provider) earns the full-screen loading/error
+    // treatment; once both have resolved at least once, `AsyncValue`
+    // preserves that previous data through a later loading or error state
+    // (`copyWithPrevious`), so a refresh keeps showing it while it updates
+    // or reports a problem elsewhere (see the search bar's own feedback
+    // for its button) instead of here.
+    final hasDisplayableWeather = weatherState.hasValue && forecastState.hasValue;
 
     Widget body;
-    if (weatherState.isLoading || forecastState.isLoading) {
+    if ((weatherState.isLoading || forecastState.isLoading) && !hasDisplayableWeather) {
       body = const WeatherLoadingView();
-    } else if (weatherState.hasError || forecastState.hasError) {
+    } else if ((weatherState.hasError || forecastState.hasError) && !hasDisplayableWeather) {
       final error = weatherState.error ?? forecastState.error;
       body = WeatherErrorView(
         message: error is HomeWeatherFailureException
@@ -83,9 +104,9 @@ class HomeScreen extends ConsumerWidget {
                       const HomeHeader(),
                       const SizedBox(height: AppSpacing.lg),
                       const WeatherSearchBar(),
-                      if (freshness != null && freshness.isFromCache) ...[
+                      if (cachedFreshness != null) ...[
                         const SizedBox(height: AppSpacing.lg),
-                        OfflineBanner(fetchedAt: freshness.fetchedAt),
+                        OfflineBanner(fetchedAt: cachedFreshness.fetchedAt),
                       ],
                       const SizedBox(height: AppSpacing.lg),
                       CurrentWeatherHeroCard(

@@ -51,7 +51,7 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
         );
 
     ref
-        .read(weatherFreshnessProvider.notifier)
+        .read(forecastFreshnessProvider.notifier)
         .report(WeatherFreshness(isFromCache: false, fetchedAt: fetchedAt));
 
     return forecast;
@@ -74,7 +74,7 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
       throw HomeWeatherFailureException(failure.message);
     }
 
-    ref.read(weatherFreshnessProvider.notifier).report(
+    ref.read(forecastFreshnessProvider.notifier).report(
           WeatherFreshness(isFromCache: true, fetchedAt: snapshot.fetchedAt),
         );
 

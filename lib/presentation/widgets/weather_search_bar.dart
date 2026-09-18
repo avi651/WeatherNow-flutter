@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/location/device_location.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/city_suggestion.dart';
 import '../providers/active_city_provider.dart';
 import '../providers/city_search_provider.dart';
+import '../providers/current_location_provider.dart';
+import '../providers/home_weather_exception.dart';
 import '../providers/selected_city_provider.dart';
 import 'search/city_suggestions_list.dart';
 import 'search/search_input_field.dart';
@@ -74,6 +77,25 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
   }
 
   void _useMyLocation() {
+    // Guards against a duplicate request landing before the rebuild that
+    // disables the button (below) takes effect — e.g. two taps in the
+    // same frame.
+    if (ref.read(currentLocationProvider).isLoading) return;
+
+    // [currentLocationProvider] resolves once and caches the result (it
+    // opts out of Riverpod's auto-retry, same as this app's other location
+    // reads), so without invalidating it here, tapping this button after
+    // the very first resolution would silently reuse that stale result —
+    // never re-requesting permission, never asking the device for a fresh
+    // GPS fix. Invalidating it lets every tap re-check permission and
+    // re-fetch a current fix; [currentLocationCityProvider],
+    // [activeLocationProvider], [activeCityProvider], and — because
+    // `HomeWeatherNotifier`/`HomeForecastNotifier` watch
+    // [activeLocationProvider]'s future — the weather/forecast fetch
+    // itself all react to that automatically, the same way selecting a
+    // searched city already does without this widget needing to know
+    // about weather-fetching at all.
+    ref.invalidate(currentLocationProvider);
     ref.read(selectedCityProvider.notifier).useDeviceLocation();
     _controller.clear();
     ref.read(citySearchProvider.notifier).clear();
@@ -93,6 +115,39 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
     if (_controller.text.isEmpty && !_focusNode.hasFocus && activeCity != null) {
       _controller.text = activeCity.name;
     }
+
+    // Also resyncs on every subsequent change, even when the field already
+    // shows a *different*, non-empty city name — otherwise a selection made
+    // outside this widget (e.g. tapping a favorite, which sets
+    // `selectedCityProvider` directly from `HomeScreen`) would leave the
+    // field stuck showing whichever city was selected here last.
+    ref.listen<CitySuggestion?>(activeCityProvider, (previous, next) {
+      if (!_focusNode.hasFocus) {
+        _controller.text = next?.name ?? '';
+      }
+    });
+
+    // Drives the location button's own loading/disabled state — kept
+    // separate from `homeWeatherProvider`/`homeForecastProvider`'s broader
+    // loading (which also covers e.g. the full error view's Retry) so the
+    // button only reacts to *this* request.
+    final isLocating = ref.watch(currentLocationProvider).isLoading;
+
+    // A failed fetch (permission denied, GPS unavailable, etc.) is reported
+    // here — a transient snackbar — rather than through the big
+    // full-screen error view: the rest of the app (previously-loaded
+    // weather, the search bar itself) stays visible and interactive.
+    ref.listen<AsyncValue<DeviceLocation>>(currentLocationProvider, (previous, next) {
+      if (!next.hasError || next.isLoading) return;
+
+      final error = next.error;
+      final message = error is HomeWeatherFailureException
+          ? error.message
+          : 'Could not get your current location.';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    });
 
     final theme = Theme.of(context);
     final searchState = ref.watch(citySearchProvider);
@@ -127,14 +182,23 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
                 child: InkWell(
                   key: const Key('useMyLocationButton'),
                   customBorder: const CircleBorder(),
-                  onTap: _useMyLocation,
+                  onTap: isLocating ? null : _useMyLocation,
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.xs),
-                    child: Icon(
-                      Icons.my_location,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    ),
+                    child: isLocating
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : Icon(
+                            Icons.my_location,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                   ),
                 ),
               ),

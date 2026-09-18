@@ -62,15 +62,30 @@ void main() {
     expect(await container.read(favoritesProvider.future), [pune, mumbai]);
   });
 
-  test('starts empty when the repository fails to load favorites', () async {
-    when(
-      () => mockRepository.getFavorites(),
-    ).thenAnswer((_) async => const Left(CacheFailure('boom')));
+  test(
+    'surfaces a load failure as an error, without crashing, so the '
+    'favorites screen can show a retry option',
+    () async {
+      when(
+        () => mockRepository.getFavorites(),
+      ).thenAnswer((_) async => const Left(CacheFailure('boom')));
 
-    final container = buildContainer();
+      final container = buildContainer();
 
-    expect(await container.read(favoritesProvider.future), isEmpty);
-  });
+      // AsyncNotifier.future rethrows a build failure — same convention as
+      // HomeWeatherNotifier/HomeForecastNotifier — so this doesn't resolve
+      // to a value; the failure surfaces as the notifier's AsyncError state
+      // instead of throwing uncaught, which is what lets
+      // FavoritesScreen.build's `.when(error: ...)` show a retry view
+      // rather than the app crashing.
+      await expectLater(
+        container.read(favoritesProvider.future),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(container.read(favoritesProvider).hasError, isTrue);
+    },
+  );
 
   test('add appends the city optimistically and persists it', () async {
     final container = buildContainer();

@@ -21,9 +21,10 @@ import 'weather_freshness_provider.dart';
 /// A successful fetch is cached locally (see [weatherCacheRepositoryProvider])
 /// so it can stand in for a live fetch later; a failed fetch falls back to
 /// that cache instead of failing outright when one exists for this
-/// location — [weatherFreshnessProvider] records which happened so the UI
-/// can show a "showing cached data" indicator. The cache itself is never
-/// touched on failure, so a bad response can't clobber good cached data.
+/// location — [currentWeatherFreshnessProvider] records which happened so
+/// the UI can show a "showing cached data" indicator. The cache itself is
+/// never touched on failure, so a bad response can't clobber good cached
+/// data.
 class HomeWeatherNotifier extends AsyncNotifier<CurrentWeather> {
   @override
   Future<CurrentWeather> build() => _fetch();
@@ -59,7 +60,7 @@ class HomeWeatherNotifier extends AsyncNotifier<CurrentWeather> {
         );
 
     ref
-        .read(weatherFreshnessProvider.notifier)
+        .read(currentWeatherFreshnessProvider.notifier)
         .report(WeatherFreshness(isFromCache: false, fetchedAt: fetchedAt));
 
     return weather;
@@ -83,7 +84,7 @@ class HomeWeatherNotifier extends AsyncNotifier<CurrentWeather> {
       throw HomeWeatherFailureException(failure.message);
     }
 
-    ref.read(weatherFreshnessProvider.notifier).report(
+    ref.read(currentWeatherFreshnessProvider.notifier).report(
           WeatherFreshness(isFromCache: true, fetchedAt: snapshot.fetchedAt),
         );
 

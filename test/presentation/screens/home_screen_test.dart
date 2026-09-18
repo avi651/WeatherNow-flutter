@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
+import 'package:weather_now_flutter/core/error/failures.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
 import 'package:weather_now_flutter/domain/entities/cached_current_weather.dart';
+import 'package:weather_now_flutter/domain/entities/cached_forecast.dart';
 import 'package:weather_now_flutter/domain/entities/current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/forecast.dart';
 import 'package:weather_now_flutter/domain/entities/forecast_entry.dart';
@@ -21,6 +25,8 @@ import 'package:weather_now_flutter/domain/repositories/weather_repository.dart'
 import 'package:weather_now_flutter/presentation/screens/home_screen.dart';
 import 'package:weather_now_flutter/presentation/widgets/current_weather_hero_card.dart';
 import 'package:weather_now_flutter/presentation/widgets/favorite_star_button.dart';
+import 'package:weather_now_flutter/presentation/widgets/weather_error_view.dart';
+import 'package:weather_now_flutter/presentation/widgets/weather_loading_view.dart';
 
 class MockWeatherRepository extends Mock implements WeatherRepository {}
 
@@ -259,6 +265,44 @@ void main() {
     },
   );
 
+  testWidgets(
+    'falls back to cached forecast and shows an offline banner when only the '
+    'forecast fetch fails, even though current weather succeeds live',
+    (tester) async {
+      when(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => Right(weather));
+      when(
+        () => mockRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+      final cachedAt = DateTime(2026, 9, 17, 8, 0);
+      when(
+        () => mockWeatherCacheRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => Right(CachedForecast(forecast: forecast, fetchedAt: cachedAt)),
+      );
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      // Current weather is live and fine, but the forecast is a stale cache
+      // snapshot — the banner must still surface that, not be hidden by the
+      // current weather's live (non-cached) freshness report.
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      expect(find.byKey(const Key('offlineBanner')), findsOneWidget);
+      expect(find.textContaining("You're offline"), findsOneWidget);
+    },
+  );
+
   testWidgets('shows an error view with retry when location permission is denied',
       (tester) async {
     when(() => mockLocationService.getCurrentLocation()).thenAnswer(
@@ -455,6 +499,119 @@ void main() {
           longitude: location.longitude,
         ),
       ).called(2);
+    },
+  );
+
+  testWidgets(
+    'tapping use-my-location re-requests the device location from the '
+    'location service instead of reusing the one resolved at app launch',
+    (tester) async {
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+        locationCallCount++;
+        return const Right(location);
+      });
+      stubWeatherSuccess();
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+      expect(locationCallCount, 1);
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pumpAndSettle();
+
+      expect(
+        locationCallCount,
+        2,
+        reason: 'tapping the location button must ask the location service '
+            'for a fresh fix, not just reuse the one from app launch',
+      );
+    },
+  );
+
+  testWidgets(
+    'tapping use-my-location surfaces a fresh location failure (e.g. '
+    'permission revoked) as a snackbar, keeping the previous weather on '
+    'screen instead of replacing it with the full-screen error view',
+    (tester) async {
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+        locationCallCount++;
+        if (locationCallCount == 1) return const Right(location);
+        return const Left(
+          LocationPermissionDeniedFailure('Location permission was denied.'),
+        );
+      });
+      stubWeatherSuccess();
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pumpAndSettle();
+
+      // The rest of the app — including the previously-loaded weather —
+      // stays put; only a transient snackbar reports the failure.
+      expect(find.byType(WeatherErrorView), findsNothing);
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('Location permission was denied.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping use-my-location shows a loading indicator only on the button '
+    '— never the full-screen loader — keeps the rest of the UI visible, '
+    'and disables the button so a second tap does not fire a duplicate '
+    'request',
+    (tester) async {
+      final locationCompleter = Completer<Either<Failure, DeviceLocation>>();
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) {
+        locationCallCount++;
+        if (locationCallCount == 1) {
+          return Future.value(const Right(location));
+        }
+        return locationCompleter.future;
+      });
+      stubWeatherSuccess();
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pump();
+
+      // Mid-flight: no full-screen loader, previous weather still shown,
+      // and the button itself carries its own small indicator.
+      expect(find.byType(WeatherLoadingView), findsNothing);
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('useMyLocationButton')),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsOneWidget,
+      );
+
+      // A second tap while still loading must not issue another request.
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pump();
+      expect(locationCallCount, 2);
+
+      locationCompleter.complete(const Right(location));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('useMyLocationButton')),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+      );
     },
   );
 

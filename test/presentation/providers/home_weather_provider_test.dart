@@ -236,7 +236,7 @@ void main() {
         ),
       ).called(1);
 
-      final freshness = container.read(weatherFreshnessProvider);
+      final freshness = container.read(currentWeatherFreshnessProvider);
       expect(freshness, isNotNull);
       expect(freshness!.isFromCache, isFalse);
     });
@@ -264,7 +264,7 @@ void main() {
       final result = await container.read(homeWeatherProvider.future);
 
       expect(result, weather);
-      final freshness = container.read(weatherFreshnessProvider);
+      final freshness = container.read(currentWeatherFreshnessProvider);
       expect(freshness!.isFromCache, isTrue);
       expect(freshness.fetchedAt, cachedAt);
 

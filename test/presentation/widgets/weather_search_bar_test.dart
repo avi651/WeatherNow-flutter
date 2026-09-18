@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:weather_now_flutter/core/error/location_failures.dart';
 import 'package:weather_now_flutter/core/error/network_failures.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
@@ -78,6 +81,10 @@ void main() {
   testWidgets('shows the search icon, the input, and a use-my-location button',
       (tester) async {
     await tester.pumpWidget(buildSubject(container: buildContainer()));
+    // The location button shows a loading indicator in place of the icon
+    // while the very first device-location resolution is in flight — wait
+    // for that to settle before asserting the idle icon.
+    await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.search), findsOneWidget);
     expect(find.byIcon(Icons.my_location), findsOneWidget);
@@ -194,6 +201,47 @@ void main() {
   );
 
   testWidgets(
+    'a city selected outside the search bar (e.g. from favorites) replaces '
+    'a different city already showing in the field',
+    (tester) async {
+      const mumbai = CitySuggestion(
+        name: 'Mumbai',
+        state: 'Maharashtra',
+        country: 'IN',
+        latitude: 19.0760,
+        longitude: 72.8777,
+      );
+
+      when(
+        () => mockRepository.searchCities(query: 'Lon'),
+      ).thenAnswer((_) async => const Right([london]));
+
+      final container = buildContainer();
+      await tester.pumpWidget(buildSubject(container: container));
+      await searchAndSettle(tester, 'Lon');
+      await tester.tap(find.text(london.displayLabel));
+      await tester.pump();
+
+      final textField = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textField.controller!.text, 'London');
+
+      // Selecting a city through some other flow (e.g. tapping a favorite,
+      // which calls selectedCityProvider directly, bypassing this widget's
+      // own _selectCity) must still update the field even though it
+      // already shows a different, non-empty city name.
+      container.read(selectedCityProvider.notifier).select(mumbai);
+      await tester.pump();
+
+      final textFieldAfter = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textFieldAfter.controller!.text, 'Mumbai');
+    },
+  );
+
+  testWidgets(
     'shows the already-selected city name in an empty field on first build',
     (tester) async {
       const delhi = CitySuggestion(
@@ -251,6 +299,151 @@ void main() {
         find.byKey(const Key('citySearchTextField')),
       );
       expect(textField.controller!.text, 'Pune');
+    },
+  );
+
+  testWidgets(
+    'tapping use-my-location asks the location service for a fresh fix '
+    'instead of reusing the one resolved on first build',
+    (tester) async {
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+        locationCallCount++;
+        return const Right(deviceLocation);
+      });
+
+      final container = buildContainer();
+      await tester.pumpWidget(buildSubject(container: container));
+      await tester.pumpAndSettle();
+      expect(locationCallCount, 1);
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pumpAndSettle();
+
+      expect(locationCallCount, 2);
+    },
+  );
+
+  testWidgets(
+    'tapping use-my-location retries after an earlier permission denial and '
+    'shows the recovered device-location city once granted',
+    (tester) async {
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+        locationCallCount++;
+        if (locationCallCount == 1) {
+          return const Left(
+            LocationPermissionDeniedFailure('Location permission was denied.'),
+          );
+        }
+        return const Right(deviceLocation);
+      });
+
+      final container = buildContainer();
+      await tester.pumpWidget(buildSubject(container: container));
+      await tester.pumpAndSettle();
+
+      // The first resolution failed, so there's nothing to show yet.
+      var textField = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textField.controller!.text, isEmpty);
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pumpAndSettle();
+
+      textField = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textField.controller!.text, 'Pune');
+    },
+  );
+
+  testWidgets(
+    'shows a loading indicator on the location button while fetching and '
+    'disables it so a second tap does not fire a duplicate request',
+    (tester) async {
+      final locationCompleter = Completer<Either<LocationServiceDisabledFailure, DeviceLocation>>();
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) {
+        locationCallCount++;
+        if (locationCallCount == 1) {
+          return Future.value(const Right(deviceLocation));
+        }
+        return locationCompleter.future;
+      });
+
+      final container = buildContainer();
+      await tester.pumpWidget(buildSubject(container: container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('useMyLocationButton')),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('useMyLocationButton')),
+          matching: find.byIcon(Icons.my_location),
+        ),
+        findsNothing,
+      );
+
+      // Disabled while loading — a second tap must not call through again.
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pump();
+      expect(locationCallCount, 2);
+
+      locationCompleter.complete(const Right(deviceLocation));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('useMyLocationButton')),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('useMyLocationButton')),
+          matching: find.byIcon(Icons.my_location),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'shows a snackbar with the failure message when a fresh location '
+    'request fails, without blocking the rest of the search bar',
+    (tester) async {
+      var locationCallCount = 0;
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+        locationCallCount++;
+        if (locationCallCount == 1) return const Right(deviceLocation);
+        return const Left(
+          LocationPermissionDeniedFailure('Location permission was denied.'),
+        );
+      });
+
+      final container = buildContainer();
+      await tester.pumpWidget(buildSubject(container: container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('useMyLocationButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('Location permission was denied.'), findsOneWidget);
+      // The rest of the search bar (field, search icon) stays interactive.
+      expect(find.byKey(const Key('citySearchTextField')), findsOneWidget);
     },
   );
 
