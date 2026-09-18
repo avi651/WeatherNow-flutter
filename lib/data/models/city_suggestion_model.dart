@@ -22,6 +22,19 @@ class CitySuggestionModel {
     );
   }
 
+  /// Round-trips a [CitySuggestion] back into this wire-shaped model — used
+  /// to persist a selected/favorited city locally in the same JSON shape
+  /// [fromJson] reads.
+  factory CitySuggestionModel.fromEntity(CitySuggestion city) {
+    return CitySuggestionModel(
+      name: city.name,
+      state: city.state,
+      country: city.country,
+      latitude: city.latitude,
+      longitude: city.longitude,
+    );
+  }
+
   final String name;
   final String? state;
   final String country;
@@ -36,6 +49,16 @@ class CitySuggestionModel {
       latitude: latitude,
       longitude: longitude,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'state': state,
+      'country': country,
+      'lat': latitude,
+      'lon': longitude,
+    };
   }
 
   @override

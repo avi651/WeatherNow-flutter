@@ -8,15 +8,19 @@ import '../providers/favorite_provider.dart';
 import '../providers/home_forecast_provider.dart';
 import '../providers/home_weather_exception.dart';
 import '../providers/home_weather_provider.dart';
+import '../providers/selected_city_provider.dart';
+import '../providers/weather_freshness_provider.dart';
 import '../utils/daily_forecast_aggregator.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/current_weather_hero_card.dart';
 import '../widgets/daily_forecast_strip.dart';
 import '../widgets/home_header.dart';
+import '../widgets/offline_banner.dart';
 import '../widgets/weather_error_view.dart';
 import '../widgets/weather_loading_view.dart';
 import '../widgets/weather_search_bar.dart';
 import '../widgets/weather_stats_row.dart';
+import 'favorites_screen.dart';
 
 /// The Home screen: current weather and a 5-day forecast for the
 /// (currently placeholder) location, with loading, success, and
@@ -30,6 +34,7 @@ class HomeScreen extends ConsumerWidget {
     final forecastState = ref.watch(homeForecastProvider);
     final isFavorite = ref.watch(isFavoriteProvider);
     final activeCity = ref.watch(activeCityProvider);
+    final freshness = ref.watch(weatherFreshnessProvider);
 
     Widget body;
     if (weatherState.isLoading || forecastState.isLoading) {
@@ -78,14 +83,21 @@ class HomeScreen extends ConsumerWidget {
                       const HomeHeader(),
                       const SizedBox(height: AppSpacing.lg),
                       const WeatherSearchBar(),
+                      if (freshness != null && freshness.isFromCache) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        OfflineBanner(fetchedAt: freshness.fetchedAt),
+                      ],
                       const SizedBox(height: AppSpacing.lg),
                       CurrentWeatherHeroCard(
                         weather: weather,
                         locationName: activeCity?.name ?? 'Current Location',
                         country: activeCity?.country ?? '',
                         isFavorite: isFavorite,
-                        onFavoriteToggle: () =>
-                            ref.read(isFavoriteProvider.notifier).toggle(),
+                        onFavoriteToggle: () {
+                          if (activeCity != null) {
+                            ref.read(favoritesProvider.notifier).toggle(activeCity);
+                          }
+                        },
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       WeatherStatsRow(weather: weather),
@@ -138,7 +150,27 @@ class HomeScreen extends ConsumerWidget {
           ),
           child: SafeArea(child: body),
         ),
-        bottomNavigationBar: const BottomNavBar(),
+        bottomNavigationBar: BottomNavBar(
+          onDestinationSelected: (index) => _onDestinationSelected(context, ref, index),
+        ),
+      ),
+    );
+  }
+
+  /// Home (index 0) is already showing; Favorites (1) pushes
+  /// [FavoritesScreen], selecting a tapped favorite back here as the
+  /// active city. Settings (2) has no screen yet.
+  void _onDestinationSelected(BuildContext context, WidgetRef ref, int index) {
+    if (index != 1) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FavoritesScreen(
+          onCitySelected: (city) {
+            ref.read(selectedCityProvider.notifier).select(city);
+            Navigator.of(context).pop();
+          },
+        ),
       ),
     );
   }

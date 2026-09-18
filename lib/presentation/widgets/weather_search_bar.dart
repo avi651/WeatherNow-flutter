@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/city_suggestion.dart';
+import '../providers/active_city_provider.dart';
 import '../providers/city_search_provider.dart';
-import '../providers/current_location_city_provider.dart';
 import '../providers/selected_city_provider.dart';
 import 'search/city_suggestions_list.dart';
 import 'search/search_input_field.dart';
@@ -14,16 +14,23 @@ import 'search/search_input_field.dart';
 /// that appears below it while focused with an active query.
 ///
 /// Selecting a suggestion (or tapping "use my location") updates
-/// [selectedCityProvider], clears the field, and dismisses the keyboard —
-/// [selectedCityProvider] is what [activeLocationProvider] reads to
-/// decide which coordinates to fetch weather for.
+/// [selectedCityProvider] and dismisses the keyboard — [selectedCityProvider]
+/// is what [activeLocationProvider] reads to decide which coordinates to
+/// fetch weather for.
 ///
-/// While in "use my location" mode (the default, and after tapping the
-/// location button), the field displays [currentLocationCityProvider]'s
-/// resolved city name once reverse geocoding finishes — mirroring the
-/// same city on the weather card — but reading the field back to blank
-/// whenever it's focused, so tapping in to search doesn't require first
-/// deleting that text.
+/// [activeCityProvider] — the selected city if one was chosen via search,
+/// otherwise the device's reverse-geocoded current-location city — is this
+/// widget's single source of truth for what the field displays. Whenever
+/// the field is empty and unfocused, it's synced to that city's name, so:
+/// the selected city stays visible after choosing it, a blank field always
+/// falls back to showing whichever city is active, and the device's current
+/// location (once it resolves) can never overwrite a manually selected city
+/// — [activeCityProvider] already prefers the selection over it, and this
+/// only fills a field that's empty to begin with.
+///
+/// Gaining focus while the field is showing that passive label (rather than
+/// text the user actually typed) clears it, so tapping in to search doesn't
+/// require first deleting that text.
 class WeatherSearchBar extends ConsumerStatefulWidget {
   const WeatherSearchBar({super.key});
 
@@ -34,7 +41,6 @@ class WeatherSearchBar extends ConsumerStatefulWidget {
 class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  bool _usingDeviceLocation = true;
 
   @override
   void initState() {
@@ -51,37 +57,24 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
   }
 
   void _handleFocusChanged() {
-    // Gaining focus on a field showing the passive device-location label
-    // clears it, so the user can start typing a search immediately instead
-    // of first deleting that text. Losing focus without having typed
-    // anything restores it, via the sync in `build`.
-    if (_focusNode.hasFocus && _usingDeviceLocation && _controller.text.isNotEmpty) {
-      _controller.clear();
+    if (_focusNode.hasFocus) {
+      final activeCity = ref.read(activeCityProvider);
+      if (_controller.text.isNotEmpty && _controller.text == activeCity?.name) {
+        _controller.clear();
+      }
     }
     setState(() {});
   }
 
   void _selectCity(CitySuggestion city) {
-    _usingDeviceLocation = false;
     ref.read(selectedCityProvider.notifier).select(city);
-    _resetSearch();
+    _controller.text = city.name;
+    ref.read(citySearchProvider.notifier).clear();
+    _focusNode.unfocus();
   }
 
   void _useMyLocation() {
-    _usingDeviceLocation = true;
     ref.read(selectedCityProvider.notifier).useDeviceLocation();
-    _resetSearch();
-    // `_resetSearch` doesn't reliably trigger a rebuild on its own here:
-    // `citySearchProvider`'s `clear()` sets state to a `const
-    // CitySearchState()`, and when the search was already empty (as it
-    // is right after selecting a city), that's the exact same
-    // canonicalized instance already in place — Riverpod sees no change
-    // and skips notifying. Force one explicitly so `build`'s
-    // device-location-label sync below actually re-runs.
-    setState(() {});
-  }
-
-  void _resetSearch() {
     _controller.clear();
     ref.read(citySearchProvider.notifier).clear();
     _focusNode.unfocus();
@@ -89,19 +82,16 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    // Fills the field with the resolved device-location city name whenever
-    // it's otherwise empty — reading the provider reactively (rather than
-    // only reacting to its future transitions via `ref.listen`) so this
-    // also covers the common case where the provider already resolved
-    // before this widget was first built (e.g. on initial app load, since
-    // `HomeScreen` starts resolving it well before the weather finishes
-    // loading and this widget ever mounts).
-    final currentLocationCity = ref.watch(currentLocationCityProvider).value;
-    if (_usingDeviceLocation &&
-        _controller.text.isEmpty &&
-        !_focusNode.hasFocus &&
-        currentLocationCity != null) {
-      _controller.text = currentLocationCity.name;
+    // Fills the field with the active city's name whenever it's otherwise
+    // empty — reading the provider reactively (rather than only reacting to
+    // its future transitions via `ref.listen`) so this also covers the
+    // common case where the provider already resolved before this widget
+    // was first built (e.g. on initial app load, since `HomeScreen` starts
+    // resolving it well before the weather finishes loading and this widget
+    // ever mounts).
+    final activeCity = ref.watch(activeCityProvider);
+    if (_controller.text.isEmpty && !_focusNode.hasFocus && activeCity != null) {
+      _controller.text = activeCity.name;
     }
 
     final theme = Theme.of(context);

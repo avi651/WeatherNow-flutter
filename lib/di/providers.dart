@@ -1,23 +1,36 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:weather_now_flutter/core/config/app_environment.dart';
 import 'package:weather_now_flutter/core/location/geolocator_location_service.dart';
 import '../core/location/location_service.dart';
 import '../core/network/api_client.dart';
 import '../core/network/dio_client_config.dart';
 import '../core/network/dio_exception_mapper.dart';
+import '../data/datasources/favorites_hive_data_source.dart';
+import '../data/datasources/favorites_local_data_source.dart';
 import '../data/datasources/geocoding_api_service.dart';
 import '../data/datasources/geocoding_data_source.dart';
 import '../data/datasources/geocoding_mock_data_source.dart';
 import '../data/datasources/weather_api_service.dart';
+import '../data/datasources/weather_cache_hive_data_source.dart';
+import '../data/datasources/weather_cache_local_data_source.dart';
 import '../data/datasources/weather_data_source.dart';
 import '../data/datasources/weather_mock_data_source.dart';
+import '../data/local/hive_boxes.dart';
+import '../data/repositories/favorites_repository_impl.dart';
 import '../data/repositories/geocoding_repository_impl.dart';
+import '../data/repositories/weather_cache_repository_impl.dart';
 import '../data/repositories/weather_repository_impl.dart';
+import '../domain/repositories/favorites_repository.dart';
 import '../domain/repositories/geocoding_repository.dart';
+import '../domain/repositories/weather_cache_repository.dart';
 import '../domain/repositories/weather_repository.dart';
+import '../domain/usecases/add_favorite.dart';
 import '../domain/usecases/get_current_weather.dart';
+import '../domain/usecases/get_favorites.dart';
 import '../domain/usecases/get_forecast.dart';
+import '../domain/usecases/remove_favorite.dart';
 import '../domain/usecases/reverse_geocode.dart';
 import '../domain/usecases/search_cities.dart';
 
@@ -105,4 +118,54 @@ final searchCitiesProvider = Provider<SearchCities>((ref) {
 
 final reverseGeocodeProvider = Provider<ReverseGeocode>((ref) {
   return ReverseGeocode(ref.watch(geocodingRepositoryProvider));
+});
+
+/// The already-open Hive box favorites are stored in — opened once at
+/// startup by [HiveBoxes.openAll] (or by tests' global setup), so it's
+/// always safe to read synchronously here.
+final favoritesBoxProvider = Provider<Box<dynamic>>((ref) {
+  return Hive.box(HiveBoxes.favorites);
+});
+
+final favoritesLocalDataSourceProvider = Provider<FavoritesLocalDataSource>((ref) {
+  return HiveFavoritesDataSource(box: ref.watch(favoritesBoxProvider));
+});
+
+final favoritesRepositoryProvider = Provider<FavoritesRepository>((ref) {
+  return FavoritesRepositoryImpl(
+    localDataSource: ref.watch(favoritesLocalDataSourceProvider),
+  );
+});
+
+final getFavoritesProvider = Provider<GetFavorites>((ref) {
+  return GetFavorites(ref.watch(favoritesRepositoryProvider));
+});
+
+final addFavoriteProvider = Provider<AddFavorite>((ref) {
+  return AddFavorite(ref.watch(favoritesRepositoryProvider));
+});
+
+final removeFavoriteProvider = Provider<RemoveFavorite>((ref) {
+  return RemoveFavorite(ref.watch(favoritesRepositoryProvider));
+});
+
+final currentWeatherCacheBoxProvider = Provider<Box<dynamic>>((ref) {
+  return Hive.box(HiveBoxes.currentWeatherCache);
+});
+
+final forecastCacheBoxProvider = Provider<Box<dynamic>>((ref) {
+  return Hive.box(HiveBoxes.forecastCache);
+});
+
+final weatherCacheLocalDataSourceProvider = Provider<WeatherCacheLocalDataSource>((ref) {
+  return HiveWeatherCacheDataSource(
+    currentWeatherBox: ref.watch(currentWeatherCacheBoxProvider),
+    forecastBox: ref.watch(forecastCacheBoxProvider),
+  );
+});
+
+final weatherCacheRepositoryProvider = Provider<WeatherCacheRepository>((ref) {
+  return WeatherCacheRepositoryImpl(
+    localDataSource: ref.watch(weatherCacheLocalDataSourceProvider),
+  );
 });

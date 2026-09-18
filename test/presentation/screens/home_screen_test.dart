@@ -8,12 +8,15 @@ import 'package:weather_now_flutter/core/error/location_failures.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
+import 'package:weather_now_flutter/domain/entities/cached_current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/forecast.dart';
 import 'package:weather_now_flutter/domain/entities/forecast_entry.dart';
 import 'package:weather_now_flutter/domain/entities/weather_condition.dart';
 import 'package:weather_now_flutter/domain/entities/city_suggestion.dart';
+import 'package:weather_now_flutter/domain/repositories/favorites_repository.dart';
 import 'package:weather_now_flutter/domain/repositories/geocoding_repository.dart';
+import 'package:weather_now_flutter/domain/repositories/weather_cache_repository.dart';
 import 'package:weather_now_flutter/domain/repositories/weather_repository.dart';
 import 'package:weather_now_flutter/presentation/screens/home_screen.dart';
 import 'package:weather_now_flutter/presentation/widgets/current_weather_hero_card.dart';
@@ -25,10 +28,16 @@ class MockLocationService extends Mock implements LocationService {}
 
 class MockGeocodingRepository extends Mock implements GeocodingRepository {}
 
+class MockFavoritesRepository extends Mock implements FavoritesRepository {}
+
+class MockWeatherCacheRepository extends Mock implements WeatherCacheRepository {}
+
 void main() {
   late MockWeatherRepository mockRepository;
   late MockLocationService mockLocationService;
   late MockGeocodingRepository mockGeocodingRepository;
+  late MockFavoritesRepository mockFavoritesRepository;
+  late MockWeatherCacheRepository mockWeatherCacheRepository;
 
   const location = DeviceLocation(latitude: 12.9716, longitude: 77.5946);
 
@@ -71,10 +80,18 @@ void main() {
     ),
   ]);
 
+  setUpAll(() {
+    registerFallbackValue(weather);
+    registerFallbackValue(forecast);
+    registerFallbackValue(bengaluru);
+  });
+
   setUp(() {
     mockRepository = MockWeatherRepository();
     mockLocationService = MockLocationService();
     mockGeocodingRepository = MockGeocodingRepository();
+    mockFavoritesRepository = MockFavoritesRepository();
+    mockWeatherCacheRepository = MockWeatherCacheRepository();
     // Default: location resolves successfully. Individual tests override
     // this when they specifically want to exercise a location failure.
     when(() => mockLocationService.getCurrentLocation())
@@ -88,6 +105,47 @@ void main() {
         longitude: any(named: 'longitude'),
       ),
     ).thenAnswer((_) async => const Right(bengaluru));
+    // Favorites/cache aren't under test here — a mocked, no-op-but-real
+    // Either keeps this file off real Hive I/O (a real box *write* never
+    // resolves under `testWidgets`' fake-async pump clock).
+    when(() => mockFavoritesRepository.getFavorites())
+        .thenAnswer((_) async => const Right([]));
+    when(() => mockFavoritesRepository.addFavorite(any()))
+        .thenAnswer((_) async => const Right(unit));
+    when(() => mockFavoritesRepository.removeFavorite(any()))
+        .thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockWeatherCacheRepository.saveCurrentWeather(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'),
+        weather: any(named: 'weather'),
+        fetchedAt: any(named: 'fetchedAt'),
+        cityName: any(named: 'cityName'),
+        country: any(named: 'country'),
+      ),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockWeatherCacheRepository.saveForecast(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'),
+        forecast: any(named: 'forecast'),
+        fetchedAt: any(named: 'fetchedAt'),
+        cityName: any(named: 'cityName'),
+        country: any(named: 'country'),
+      ),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockWeatherCacheRepository.getCurrentWeather(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'),
+      ),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => mockWeatherCacheRepository.getForecast(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'),
+      ),
+    ).thenAnswer((_) async => const Right(null));
   });
 
   void stubWeatherSuccess() {
@@ -111,6 +169,8 @@ void main() {
         weatherRepositoryProvider.overrideWithValue(mockRepository),
         locationServiceProvider.overrideWithValue(mockLocationService),
         geocodingRepositoryProvider.overrideWithValue(mockGeocodingRepository),
+        favoritesRepositoryProvider.overrideWithValue(mockFavoritesRepository),
+        weatherCacheRepositoryProvider.overrideWithValue(mockWeatherCacheRepository),
       ],
       child: const MaterialApp(home: HomeScreen()),
     );
@@ -163,6 +223,41 @@ void main() {
     expect(find.text('No connection'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
   });
+
+  testWidgets(
+    'falls back to cached weather and shows an offline banner when the '
+    'live fetch fails but a cache exists',
+    (tester) async {
+      when(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+      when(
+        () => mockRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => Right(forecast));
+      final cachedAt = DateTime(2026, 9, 17, 8, 0);
+      when(
+        () => mockWeatherCacheRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => Right(CachedCurrentWeather(weather: weather, fetchedAt: cachedAt)),
+      );
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      expect(find.byKey(const Key('offlineBanner')), findsOneWidget);
+      expect(find.textContaining("You're offline"), findsOneWidget);
+    },
+  );
 
   testWidgets('shows an error view with retry when location permission is denied',
       (tester) async {
@@ -302,8 +397,19 @@ void main() {
       await tester.tap(find.text(london.displayLabel));
       await tester.pumpAndSettle();
 
-      expect(find.text('London'), findsOneWidget);
+      // Shown on both the hero card and, kept visible, the search field itself.
+      expect(
+        find.descendant(
+          of: find.byType(CurrentWeatherHeroCard),
+          matching: find.text('London'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('GB'), findsOneWidget);
+      final textField = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textField.controller!.text, 'London');
       verify(
         () => mockRepository.getCurrentWeather(latitude: 51.5072, longitude: -0.1276),
       ).called(1);

@@ -2,20 +2,26 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:weather_now_flutter/core/error/cache_failures.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
+import 'package:weather_now_flutter/domain/entities/cached_current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/weather_condition.dart';
+import 'package:weather_now_flutter/domain/repositories/weather_cache_repository.dart';
 import 'package:weather_now_flutter/domain/repositories/weather_repository.dart';
 import 'package:weather_now_flutter/presentation/providers/home_weather_exception.dart';
 import 'package:weather_now_flutter/presentation/providers/home_weather_provider.dart';
+import 'package:weather_now_flutter/presentation/providers/weather_freshness_provider.dart';
 
 class MockWeatherRepository extends Mock implements WeatherRepository {}
 
 class MockLocationService extends Mock implements LocationService {}
+
+class MockWeatherCacheRepository extends Mock implements WeatherCacheRepository {}
 
 void main() {
   late MockWeatherRepository mockRepository;
@@ -59,6 +65,10 @@ void main() {
       // Expected error in failure test cases.
     }
   }
+
+  setUpAll(() {
+    registerFallbackValue(weather);
+  });
 
   setUp(() {
     mockRepository = MockWeatherRepository();
@@ -172,5 +182,157 @@ void main() {
         longitude: any(named: 'longitude'),
       ),
     ).called(2);
+  });
+
+  group('offline caching', () {
+    late MockWeatherCacheRepository mockCacheRepository;
+
+    ProviderContainer buildContainerWithCache() {
+      final container = ProviderContainer(
+        overrides: [
+          weatherRepositoryProvider.overrideWithValue(mockRepository),
+          locationServiceProvider.overrideWithValue(mockLocationService),
+          weatherCacheRepositoryProvider.overrideWithValue(mockCacheRepository),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    setUp(() {
+      mockCacheRepository = MockWeatherCacheRepository();
+    });
+
+    test('a successful fetch is cached and reported as not from cache', () async {
+      stubLocationSuccess();
+      when(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => Right(weather));
+      when(
+        () => mockCacheRepository.saveCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          weather: any(named: 'weather'),
+          fetchedAt: any(named: 'fetchedAt'),
+          cityName: any(named: 'cityName'),
+          country: any(named: 'country'),
+        ),
+      ).thenAnswer((_) async => const Right(unit));
+
+      final container = buildContainerWithCache();
+      await container.read(homeWeatherProvider.future);
+
+      verify(
+        () => mockCacheRepository.saveCurrentWeather(
+          latitude: location.latitude,
+          longitude: location.longitude,
+          weather: weather,
+          fetchedAt: any(named: 'fetchedAt'),
+          cityName: any(named: 'cityName'),
+          country: any(named: 'country'),
+        ),
+      ).called(1);
+
+      final freshness = container.read(weatherFreshnessProvider);
+      expect(freshness, isNotNull);
+      expect(freshness!.isFromCache, isFalse);
+    });
+
+    test('falls back to the cached weather when the live fetch fails', () async {
+      stubLocationSuccess();
+      when(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+
+      final cachedAt = DateTime.utc(2026, 9, 17);
+      when(
+        () => mockCacheRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => Right(CachedCurrentWeather(weather: weather, fetchedAt: cachedAt)),
+      );
+
+      final container = buildContainerWithCache();
+      final result = await container.read(homeWeatherProvider.future);
+
+      expect(result, weather);
+      final freshness = container.read(weatherFreshnessProvider);
+      expect(freshness!.isFromCache, isTrue);
+      expect(freshness.fetchedAt, cachedAt);
+
+      // The failed response must never overwrite the cache.
+      verifyNever(
+        () => mockCacheRepository.saveCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          weather: any(named: 'weather'),
+          fetchedAt: any(named: 'fetchedAt'),
+          cityName: any(named: 'cityName'),
+          country: any(named: 'country'),
+        ),
+      );
+    });
+
+    test(
+      'propagates the original failure — not a cache error — when nothing is cached',
+      () async {
+        stubLocationSuccess();
+        when(
+          () => mockRepository.getCurrentWeather(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+        when(
+          () => mockCacheRepository.getCurrentWeather(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer((_) async => const Right(null));
+
+        final container = buildContainerWithCache();
+
+        await ignoreProviderError(container.read(homeWeatherProvider.future));
+
+        final state = container.read(homeWeatherProvider);
+        expect(state.hasError, isTrue);
+        expect((state.error as HomeWeatherFailureException).message, 'No connection');
+      },
+    );
+
+    test(
+      'propagates the original failure when reading the cache itself fails',
+      () async {
+        stubLocationSuccess();
+        when(
+          () => mockRepository.getCurrentWeather(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+        when(
+          () => mockCacheRepository.getCurrentWeather(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer((_) async => const Left(CacheFailure('corrupted')));
+
+        final container = buildContainerWithCache();
+
+        await ignoreProviderError(container.read(homeWeatherProvider.future));
+
+        final state = container.read(homeWeatherProvider);
+        expect(state.hasError, isTrue);
+        expect((state.error as HomeWeatherFailureException).message, 'No connection');
+      },
+    );
   });
 }

@@ -125,8 +125,8 @@ void main() {
   });
 
   testWidgets(
-    'selecting a suggestion updates selectedCityProvider, clears the field, '
-    'hides suggestions, and dismisses the keyboard',
+    'selecting a suggestion updates selectedCityProvider, keeps its name '
+    'visible in the field, hides suggestions, and dismisses the keyboard',
     (tester) async {
       when(
         () => mockRepository.searchCities(query: 'Lon'),
@@ -144,9 +144,76 @@ void main() {
       final textField = tester.widget<TextField>(
         find.byKey(const Key('citySearchTextField')),
       );
-      expect(textField.controller!.text, isEmpty);
+      expect(textField.controller!.text, 'London');
       expect(find.byKey(const Key('citySuggestionsList')), findsNothing);
       expect(textField.focusNode!.hasFocus, isFalse);
+    },
+  );
+
+  testWidgets(
+    'the selected city name survives a rebuild instead of reverting to the '
+    'device location',
+    (tester) async {
+      when(
+        () => mockRepository.searchCities(query: 'Mum'),
+      ).thenAnswer(
+        (_) async => const Right([
+          CitySuggestion(
+            name: 'Mumbai',
+            state: 'Maharashtra',
+            country: 'IN',
+            latitude: 19.0760,
+            longitude: 72.8777,
+          ),
+        ]),
+      );
+
+      final container = buildContainer();
+      await tester.pumpWidget(buildSubject(container: container));
+      // Let the device-location reverse-geocode ("Pune") resolve first, so
+      // a stale overwrite would be observable.
+      await tester.pumpAndSettle();
+
+      await searchAndSettle(tester, 'Mum');
+      await tester.tap(find.text('Mumbai, Maharashtra, IN'));
+      await tester.pump();
+
+      final textField = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textField.controller!.text, 'Mumbai');
+
+      // A late, in-flight resolution of the device location must not
+      // overwrite the manually selected city.
+      await tester.pumpAndSettle();
+      final textFieldAfter = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textFieldAfter.controller!.text, 'Mumbai');
+    },
+  );
+
+  testWidgets(
+    'shows the already-selected city name in an empty field on first build',
+    (tester) async {
+      const delhi = CitySuggestion(
+        name: 'Delhi',
+        state: 'Delhi',
+        country: 'IN',
+        latitude: 28.7041,
+        longitude: 77.1025,
+      );
+
+      final container = buildContainer();
+      container.read(selectedCityProvider.notifier).select(delhi);
+
+      await tester.pumpWidget(buildSubject(container: container));
+      await tester.pump();
+
+      final textField = tester.widget<TextField>(
+        find.byKey(const Key('citySearchTextField')),
+      );
+      expect(textField.controller!.text, 'Delhi');
     },
   );
 

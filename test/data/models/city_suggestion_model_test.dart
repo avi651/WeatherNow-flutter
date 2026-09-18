@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:weather_now_flutter/data/models/city_suggestion_model.dart';
+import 'package:weather_now_flutter/domain/entities/city_suggestion.dart';
 
 void main() {
   Map<String, dynamic> json({String? state}) {
@@ -93,5 +94,36 @@ void main() {
     });
 
     expect(a, isNot(b));
+  });
+
+  test('fromEntity -> toJson -> fromJson round-trips a favorited city', () {
+    const city = CitySuggestion(
+      name: 'Pune',
+      state: 'Maharashtra',
+      country: 'IN',
+      latitude: 18.5213738,
+      longitude: 73.8545071,
+    );
+
+    final restored = CitySuggestionModel.fromJson(
+      CitySuggestionModel.fromEntity(city).toJson(),
+    ).toEntity();
+
+    expect(restored, city);
+  });
+
+  test('fromEntity round-trips a city with no state', () {
+    const city = CitySuggestion(
+      name: 'Singapore',
+      country: 'SG',
+      latitude: 1.3521,
+      longitude: 103.8198,
+    );
+
+    final restored = CitySuggestionModel.fromJson(
+      CitySuggestionModel.fromEntity(city).toJson(),
+    ).toEntity();
+
+    expect(restored, city);
   });
 }

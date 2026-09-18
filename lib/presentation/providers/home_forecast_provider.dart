@@ -1,14 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/error/failures.dart';
+import '../../core/location/device_location.dart';
 import '../../di/providers.dart';
 import '../../domain/entities/forecast.dart';
+import 'active_city_provider.dart';
 import 'active_location_provider.dart';
 import 'current_location_provider.dart';
 import 'home_weather_exception.dart';
+import 'weather_freshness_provider.dart';
 
 /// Fetches the forecast for [activeLocationProvider] — a searched city if
 /// one is selected, otherwise the device's current location — through the
-/// existing `GetForecast` use case. Mirrors [HomeWeatherNotifier]'s shape.
+/// existing `GetForecast` use case. Mirrors [HomeWeatherNotifier]'s shape,
+/// including caching a successful fetch and falling back to that cache
+/// (rather than failing outright) when the live fetch fails but a cached
+/// forecast exists for this location.
 class HomeForecastNotifier extends AsyncNotifier<Forecast> {
   @override
   Future<Forecast> build() => _fetch();
@@ -22,9 +29,56 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
     );
 
     return result.fold(
-      (failure) => throw HomeWeatherFailureException(failure.message),
-      (forecast) => forecast,
+      (failure) => _fallbackToCache(location, failure),
+      (forecast) => _cacheAndReport(location, forecast),
     );
+  }
+
+  Future<Forecast> _cacheAndReport(
+    DeviceLocation location,
+    Forecast forecast,
+  ) async {
+    final fetchedAt = DateTime.now();
+    final activeCity = ref.read(activeCityProvider);
+
+    await ref.read(weatherCacheRepositoryProvider).saveForecast(
+          latitude: location.latitude,
+          longitude: location.longitude,
+          forecast: forecast,
+          fetchedAt: fetchedAt,
+          cityName: activeCity?.name,
+          country: activeCity?.country,
+        );
+
+    ref
+        .read(weatherFreshnessProvider.notifier)
+        .report(WeatherFreshness(isFromCache: false, fetchedAt: fetchedAt));
+
+    return forecast;
+  }
+
+  /// Mirrors [HomeWeatherNotifier._fallbackToCache]: falls back to the last
+  /// cached forecast for [location], or re-throws the original [failure]
+  /// when there's nothing usable cached.
+  Future<Forecast> _fallbackToCache(
+    DeviceLocation location,
+    Failure failure,
+  ) async {
+    final cached = await ref.read(weatherCacheRepositoryProvider).getForecast(
+          latitude: location.latitude,
+          longitude: location.longitude,
+        );
+
+    final snapshot = cached.fold((_) => null, (snapshot) => snapshot);
+    if (snapshot == null) {
+      throw HomeWeatherFailureException(failure.message);
+    }
+
+    ref.read(weatherFreshnessProvider.notifier).report(
+          WeatherFreshness(isFromCache: true, fetchedAt: snapshot.fetchedAt),
+        );
+
+    return snapshot.forecast;
   }
 
   /// Re-runs the fetch, mirroring [HomeWeatherNotifier.retry] — including

@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Bottom navigation with Home active.
+/// Bottom navigation switching between Home, Favorites, and Settings.
 ///
-/// Favorites and Settings don't have screens yet, so this doesn't
-/// actually navigate anywhere — it exists to match the reference layout.
+/// [selectedIndex] and [onDestinationSelected] default to "Home, static"
+/// so this remains usable (and testable) on its own without a parent
+/// managing navigation state.
 class BottomNavBar extends StatelessWidget {
-  const BottomNavBar({super.key});
+  const BottomNavBar({
+    this.selectedIndex = 0,
+    this.onDestinationSelected,
+    super.key,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int>? onDestinationSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +30,8 @@ class BottomNavBar extends StatelessWidget {
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: NavigationBar(
-          selectedIndex: 0,
-          onDestinationSelected: (_) {},
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected ?? (_) {},
           indicatorShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
