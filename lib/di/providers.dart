@@ -5,6 +5,7 @@ import 'package:weather_now_flutter/core/config/app_environment.dart';
 import 'package:weather_now_flutter/core/location/geolocator_location_service.dart';
 import '../core/location/location_service.dart';
 import '../core/network/api_client.dart';
+import '../core/network/connectivity_service.dart';
 import '../core/network/dio_client_config.dart';
 import '../core/network/dio_exception_mapper.dart';
 import '../data/datasources/favorites_hive_data_source.dart';
@@ -57,6 +58,10 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   );
 });
 
+final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
+  return const ConnectivityPlusService();
+});
+
 final locationServiceProvider = Provider<LocationService>((ref) {
   return const GeolocatorLocationService();
 });
@@ -72,7 +77,9 @@ final weatherApiServiceProvider = Provider<WeatherApiService>((ref) {
 /// [AppEnvironment.isMock] directly inside [weatherDataSourceProvider] — so
 /// tests can force either branch without needing a matching compile-time
 /// `--dart-define=ENV=...` for the test process itself.
-final isMockEnvironmentProvider = Provider<bool>((ref) => AppEnvironment.isMock);
+final isMockEnvironmentProvider = Provider<bool>(
+  (ref) => AppEnvironment.isMock,
+);
 
 /// The actual mock/real switch: reads bundled mock JSON when
 /// [isMockEnvironmentProvider] is true, otherwise talks to the real API
@@ -117,7 +124,9 @@ final geocodingDataSourceProvider = Provider<GeocodingDataSource>((ref) {
 });
 
 final geocodingRepositoryProvider = Provider<GeocodingRepository>((ref) {
-  return GeocodingRepositoryImpl(dataSource: ref.watch(geocodingDataSourceProvider));
+  return GeocodingRepositoryImpl(
+    dataSource: ref.watch(geocodingDataSourceProvider),
+  );
 });
 
 final searchCitiesProvider = Provider<SearchCities>((ref) {
@@ -135,7 +144,9 @@ final favoritesBoxProvider = Provider<Box<dynamic>>((ref) {
   return Hive.box(HiveBoxes.favorites);
 });
 
-final favoritesLocalDataSourceProvider = Provider<FavoritesLocalDataSource>((ref) {
+final favoritesLocalDataSourceProvider = Provider<FavoritesLocalDataSource>((
+  ref,
+) {
   return HiveFavoritesDataSource(box: ref.watch(favoritesBoxProvider));
 });
 
@@ -165,12 +176,13 @@ final forecastCacheBoxProvider = Provider<Box<dynamic>>((ref) {
   return Hive.box(HiveBoxes.forecastCache);
 });
 
-final weatherCacheLocalDataSourceProvider = Provider<WeatherCacheLocalDataSource>((ref) {
-  return HiveWeatherCacheDataSource(
-    currentWeatherBox: ref.watch(currentWeatherCacheBoxProvider),
-    forecastBox: ref.watch(forecastCacheBoxProvider),
-  );
-});
+final weatherCacheLocalDataSourceProvider =
+    Provider<WeatherCacheLocalDataSource>((ref) {
+      return HiveWeatherCacheDataSource(
+        currentWeatherBox: ref.watch(currentWeatherCacheBoxProvider),
+        forecastBox: ref.watch(forecastCacheBoxProvider),
+      );
+    });
 
 final weatherCacheRepositoryProvider = Provider<WeatherCacheRepository>((ref) {
   return WeatherCacheRepositoryImpl(
@@ -185,7 +197,9 @@ final settingsBoxProvider = Provider<Box<dynamic>>((ref) {
   return Hive.box(HiveBoxes.settings);
 });
 
-final settingsLocalDataSourceProvider = Provider<SettingsLocalDataSource>((ref) {
+final settingsLocalDataSourceProvider = Provider<SettingsLocalDataSource>((
+  ref,
+) {
   return HiveSettingsDataSource(box: ref.watch(settingsBoxProvider));
 });
 

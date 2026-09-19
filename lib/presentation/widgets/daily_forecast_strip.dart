@@ -4,6 +4,7 @@ import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/temperature_unit.dart';
+import '../screens/forecast_detail_screen.dart';
 import '../utils/daily_forecast_aggregator.dart';
 import '../utils/format_temperature.dart';
 import '../utils/weather_condition_icon.dart';
@@ -25,11 +26,15 @@ class DailyForecastStrip extends StatelessWidget {
   const DailyForecastStrip({
     required this.days,
     this.unit = TemperatureUnit.celsius,
+    this.locationName,
     super.key,
   });
 
   final List<DailyForecastSummary> days;
   final TemperatureUnit unit;
+
+  /// Shown in the detail screen's header when a day card is tapped.
+  final String? locationName;
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +65,9 @@ class DailyForecastStrip extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
             itemBuilder: (context, index) {
               final day = days[index];
-              final label =
-                  index == 0 ? 'Today' : _weekdayLabels[day.date.weekday - 1];
+              final label = index == 0
+                  ? 'Today'
+                  : _weekdayLabels[day.date.weekday - 1];
 
               return _DayCard(
                 label: label,
@@ -69,6 +75,16 @@ class DailyForecastStrip extends StatelessWidget {
                 summary: day,
                 width: cardWidth,
                 unit: unit,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ForecastDetailScreen(
+                      summary: day,
+                      label: label,
+                      unit: unit,
+                      locationName: locationName,
+                    ),
+                  ),
+                ),
               );
             },
           ),
@@ -85,8 +101,10 @@ class _DayCard extends StatelessWidget {
     required this.summary,
     required this.width,
     required this.unit,
+    required this.onTap,
   });
 
+  final VoidCallback onTap;
   final String label;
   final bool isSelected;
   final DailyForecastSummary summary;
@@ -98,6 +116,24 @@ class _DayCard extends StatelessWidget {
     final theme = Theme.of(context);
     final onSelected = theme.colorScheme.onPrimary;
 
+    final radius = BorderRadius.circular(AppSpacing.md);
+
+    return Semantics(
+      button: true,
+      label: '$label forecast details',
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: Key('dayCard_$label'),
+          borderRadius: radius,
+          onTap: onTap,
+          child: _buildCard(theme, onSelected, radius),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(ThemeData theme, Color onSelected, BorderRadius radius) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
@@ -113,7 +149,7 @@ class _DayCard extends StatelessWidget {
               )
             : null,
         color: isSelected ? null : theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(AppSpacing.md),
+        borderRadius: radius,
         border: isSelected
             ? null
             : Border.all(color: theme.colorScheme.outlineVariant),
@@ -141,9 +177,7 @@ class _DayCard extends StatelessWidget {
           ),
           Icon(
             weatherConditionIcon(summary.condition),
-            color: isSelected
-                ? onSelected
-                : theme.colorScheme.onSurfaceVariant,
+            color: isSelected ? onSelected : theme.colorScheme.onSurfaceVariant,
           ),
           Text(
             formatTemperature(summary.maxTemperatureCelsius, unit),

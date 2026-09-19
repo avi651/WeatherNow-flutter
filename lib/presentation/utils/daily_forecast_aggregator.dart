@@ -8,6 +8,7 @@ class DailyForecastSummary {
     required this.minTemperatureCelsius,
     required this.maxTemperatureCelsius,
     required this.condition,
+    this.entries = const [],
   });
 
   /// Midnight UTC of the day this summary covers.
@@ -15,6 +16,10 @@ class DailyForecastSummary {
   final double minTemperatureCelsius;
   final double maxTemperatureCelsius;
   final WeatherCondition condition;
+
+  /// The 3-hour entries this summary was built from, kept so a detail
+  /// view can break the day down without refetching.
+  final List<ForecastEntry> entries;
 }
 
 /// Groups OpenWeatherMap's 3-hour forecast entries into daily summaries.
@@ -54,6 +59,7 @@ class DailyForecastAggregator {
         minTemperatureCelsius: temperatures.reduce((a, b) => a < b ? a : b),
         maxTemperatureCelsius: temperatures.reduce((a, b) => a > b ? a : b),
         condition: representative.condition,
+        entries: List.unmodifiable(dayEntries),
       );
     }).toList();
   }

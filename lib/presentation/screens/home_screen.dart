@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
 import '../providers/active_city_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/home_forecast_provider.dart';
 import '../providers/home_weather_exception.dart';
 import '../providers/home_weather_provider.dart';
 import '../providers/temperature_unit_provider.dart';
+import '../providers/weather_refresh_provider.dart';
 import '../providers/weather_freshness_provider.dart';
 import '../navigation/tab_navigation.dart';
 import '../utils/daily_forecast_aggregator.dart';
@@ -30,21 +32,28 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Coming back online: fetch live data so it replaces whatever is on
+    // screen (cached or not) and re-caches it. Only a real offline → online
+    // transition triggers this; the startup reading has no `previous`.
+    ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, next) {
+      if (previous?.value == false && next.value == true) {
+        ref.read(refreshWeatherProvider)();
+      }
+    });
+
     final weatherState = ref.watch(homeWeatherProvider);
     final forecastState = ref.watch(homeForecastProvider);
     final isFavorite = ref.watch(isFavoriteProvider);
     final activeCity = ref.watch(activeCityProvider);
     final temperatureUnit = ref.watch(temperatureUnitProvider);
-    // Current weather and forecast are fetched independently and can each
-    // fall back to cache on their own, so their freshness is tracked
-    // separately too — this surfaces the banner whenever either one is
-    // stale, instead of one's live fetch masking the other's cached
-    // fallback.
-    final currentWeatherFreshness = ref.watch(currentWeatherFreshnessProvider);
-    final forecastFreshness = ref.watch(forecastFreshnessProvider);
-    final cachedFreshness = currentWeatherFreshness?.isFromCache == true
-        ? currentWeatherFreshness
-        : (forecastFreshness?.isFromCache == true ? forecastFreshness : null);
+    // The banner follows connectivity itself, not the outcome of a fetch,
+    // so it appears the instant the connection drops and disappears the
+    // instant it returns. The timestamp is when the data on screen was
+    // actually retrieved.
+    final isOnline = ref.watch(isOnlineProvider);
+    final dataFetchedAt =
+        ref.watch(currentWeatherFreshnessProvider)?.fetchedAt ??
+        ref.watch(forecastFreshnessProvider)?.fetchedAt;
 
     // Once there's data to show, a background refresh — e.g. the search
     // bar's locate-me button invalidating the location and letting
@@ -56,12 +65,15 @@ class HomeScreen extends ConsumerWidget {
     // (`copyWithPrevious`), so a refresh keeps showing it while it updates
     // or reports a problem elsewhere (see the search bar's own feedback
     // for its button) instead of here.
-    final hasDisplayableWeather = weatherState.hasValue && forecastState.hasValue;
+    final hasDisplayableWeather =
+        weatherState.hasValue && forecastState.hasValue;
 
     Widget body;
-    if ((weatherState.isLoading || forecastState.isLoading) && !hasDisplayableWeather) {
+    if ((weatherState.isLoading || forecastState.isLoading) &&
+        !hasDisplayableWeather) {
       body = const WeatherLoadingView();
-    } else if ((weatherState.hasError || forecastState.hasError) && !hasDisplayableWeather) {
+    } else if ((weatherState.hasError || forecastState.hasError) &&
+        !hasDisplayableWeather) {
       final error = weatherState.error ?? forecastState.error;
       body = WeatherErrorView(
         message: error is HomeWeatherFailureException
@@ -75,7 +87,9 @@ class HomeScreen extends ConsumerWidget {
     } else {
       final weather = weatherState.value!;
       final forecast = forecastState.value!;
-      final dailySummaries = DailyForecastAggregator.aggregate(forecast.entries);
+      final dailySummaries = DailyForecastAggregator.aggregate(
+        forecast.entries,
+      );
 
       body = LayoutBuilder(
         builder: (context, constraints) {
@@ -90,8 +104,9 @@ class HomeScreen extends ConsumerWidget {
             child: Center(
               child: ConstrainedBox(
                 key: const Key('homeContentConstraint'),
-                constraints:
-                    const BoxConstraints(maxWidth: AppBreakpoints.contentMaxWidth),
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.contentMaxWidth,
+                ),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     horizontalPadding,
@@ -105,9 +120,11 @@ class HomeScreen extends ConsumerWidget {
                       const HomeHeader(),
                       const SizedBox(height: AppSpacing.lg),
                       const WeatherSearchBar(),
-                      if (cachedFreshness != null) ...[
+                      if (!isOnline) ...[
                         const SizedBox(height: AppSpacing.lg),
-                        OfflineBanner(fetchedAt: cachedFreshness.fetchedAt),
+                        OfflineBanner(
+                          fetchedAt: dataFetchedAt ?? DateTime.now(),
+                        ),
                       ],
                       const SizedBox(height: AppSpacing.lg),
                       CurrentWeatherHeroCard(
@@ -117,7 +134,9 @@ class HomeScreen extends ConsumerWidget {
                         isFavorite: isFavorite,
                         onFavoriteToggle: () {
                           if (activeCity != null) {
-                            ref.read(favoritesProvider.notifier).toggle(activeCity);
+                            ref
+                                .read(favoritesProvider.notifier)
+                                .toggle(activeCity);
                           }
                         },
                       ),
@@ -134,15 +153,17 @@ class HomeScreen extends ConsumerWidget {
                           const SizedBox(width: AppSpacing.xs),
                           Text(
                             '5 Day Forecast',
-                            style:
-                                Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      DailyForecastStrip(days: dailySummaries, unit: temperatureUnit),
+                      DailyForecastStrip(
+                        days: dailySummaries,
+                        unit: temperatureUnit,
+                        locationName: activeCity?.name ?? 'Current Location',
+                      ),
                     ],
                   ),
                 ),
@@ -164,16 +185,14 @@ class HomeScreen extends ConsumerWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                colorScheme.surfaceContainerLow,
-                colorScheme.surface,
-              ],
+              colors: [colorScheme.surfaceContainerLow, colorScheme.surface],
             ),
           ),
           child: SafeArea(child: body),
         ),
         bottomNavigationBar: BottomNavBar(
-          onDestinationSelected: (index) => _onDestinationSelected(context, ref, index),
+          onDestinationSelected: (index) =>
+              _onDestinationSelected(context, ref, index),
         ),
       ),
     );

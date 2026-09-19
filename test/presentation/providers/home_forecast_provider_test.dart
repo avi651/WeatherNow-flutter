@@ -19,6 +19,7 @@ import 'package:weather_now_flutter/domain/repositories/settings_repository.dart
 import 'package:weather_now_flutter/domain/repositories/weather_cache_repository.dart';
 import 'package:weather_now_flutter/domain/repositories/weather_repository.dart';
 import 'package:weather_now_flutter/presentation/providers/home_forecast_provider.dart';
+import 'package:weather_now_flutter/presentation/providers/settings_provider.dart';
 import 'package:weather_now_flutter/presentation/providers/home_weather_exception.dart';
 import 'package:weather_now_flutter/presentation/providers/weather_freshness_provider.dart';
 
@@ -421,6 +422,88 @@ void main() {
             longitude: any(named: 'longitude'),
           ),
         );
+      },
+    );
+  });
+
+  group('offline data toggled on at runtime', () {
+    test(
+      'stores the live forecast already on screen, without refetching',
+      () async {
+        final mockCacheRepository = MockWeatherCacheRepository();
+        final mockSettingsRepository = MockSettingsRepository();
+        when(() => mockSettingsRepository.getSettings()).thenAnswer(
+          (_) async => const Right(
+            AppSettings(
+              temperatureUnit: TemperatureUnit.celsius,
+              themeMode: AppThemeMode.system,
+              offlineDataEnabled: false,
+            ),
+          ),
+        );
+        when(
+          () => mockSettingsRepository.saveOfflineDataEnabled(any()),
+        ).thenAnswer((_) async => const Right(unit));
+        when(
+          () => mockCacheRepository.saveForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+            forecast: any(named: 'forecast'),
+            fetchedAt: any(named: 'fetchedAt'),
+            cityName: any(named: 'cityName'),
+            country: any(named: 'country'),
+          ),
+        ).thenAnswer((_) async => const Right(unit));
+        when(
+          () => mockLocationService.getCurrentLocation(),
+        ).thenAnswer((_) async => const Right(location));
+        when(
+          () => mockRepository.getForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer((_) async => Right(forecast));
+
+        final container = ProviderContainer(
+          overrides: [
+            weatherRepositoryProvider.overrideWithValue(mockRepository),
+            locationServiceProvider.overrideWithValue(mockLocationService),
+            weatherCacheRepositoryProvider.overrideWithValue(
+              mockCacheRepository,
+            ),
+            settingsRepositoryProvider.overrideWithValue(
+              mockSettingsRepository,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        container.listen(homeForecastProvider, (_, _) {});
+        await container.read(homeForecastProvider.future);
+        // Let the loaded (off) setting propagate before toggling it back on.
+        await Future<void>.delayed(Duration.zero);
+
+        await container
+            .read(settingsProvider.notifier)
+            .setOfflineDataEnabled(true);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        verify(
+          () => mockCacheRepository.saveForecast(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            forecast: forecast,
+            fetchedAt: any(named: 'fetchedAt'),
+            cityName: any(named: 'cityName'),
+            country: any(named: 'country'),
+          ),
+        ).called(1);
+        verify(
+          () => mockRepository.getForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).called(1);
       },
     );
   });

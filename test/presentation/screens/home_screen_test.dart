@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
 import 'package:weather_now_flutter/core/error/failures.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
+import 'package:weather_now_flutter/core/network/connectivity_service.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
@@ -30,13 +31,33 @@ import 'package:weather_now_flutter/presentation/widgets/weather_loading_view.da
 
 class MockWeatherRepository extends Mock implements WeatherRepository {}
 
+class FakeConnectivityService implements ConnectivityService {
+  final controller = StreamController<bool>.broadcast();
+
+  /// The state reported at startup; flip it *before* pumping the widget to
+  /// launch offline, or use [emit] to change it mid-test.
+  bool online = true;
+
+  void emit(bool value) {
+    online = value;
+    controller.add(value);
+  }
+
+  @override
+  Future<bool> checkOnline() async => online;
+
+  @override
+  Stream<bool> get onlineChanges => controller.stream;
+}
+
 class MockLocationService extends Mock implements LocationService {}
 
 class MockGeocodingRepository extends Mock implements GeocodingRepository {}
 
 class MockFavoritesRepository extends Mock implements FavoritesRepository {}
 
-class MockWeatherCacheRepository extends Mock implements WeatherCacheRepository {}
+class MockWeatherCacheRepository extends Mock
+    implements WeatherCacheRepository {}
 
 void main() {
   late MockWeatherRepository mockRepository;
@@ -44,6 +65,7 @@ void main() {
   late MockGeocodingRepository mockGeocodingRepository;
   late MockFavoritesRepository mockFavoritesRepository;
   late MockWeatherCacheRepository mockWeatherCacheRepository;
+  late FakeConnectivityService fakeConnectivity;
 
   const location = DeviceLocation(latitude: 12.9716, longitude: 77.5946);
 
@@ -74,17 +96,19 @@ void main() {
     observedAt: DateTime.utc(2026, 9, 16),
   );
 
-  final forecast = Forecast(entries: [
-    ForecastEntry(
-      forecastFor: DateTime.utc(2026, 9, 16, 12),
-      temperatureCelsius: 28,
-      feelsLikeCelsius: 30,
-      humidityPercent: 60,
-      condition: WeatherCondition.clear,
-      description: 'clear sky',
-      precipitationProbability: 0.1,
-    ),
-  ]);
+  final forecast = Forecast(
+    entries: [
+      ForecastEntry(
+        forecastFor: DateTime.utc(2026, 9, 16, 12),
+        temperatureCelsius: 28,
+        feelsLikeCelsius: 30,
+        humidityPercent: 60,
+        condition: WeatherCondition.clear,
+        description: 'clear sky',
+        precipitationProbability: 0.1,
+      ),
+    ],
+  );
 
   setUpAll(() {
     registerFallbackValue(weather);
@@ -98,10 +122,13 @@ void main() {
     mockGeocodingRepository = MockGeocodingRepository();
     mockFavoritesRepository = MockFavoritesRepository();
     mockWeatherCacheRepository = MockWeatherCacheRepository();
+    fakeConnectivity = FakeConnectivityService();
+    addTearDown(() => fakeConnectivity.controller.close());
     // Default: location resolves successfully. Individual tests override
     // this when they specifically want to exercise a location failure.
-    when(() => mockLocationService.getCurrentLocation())
-        .thenAnswer((_) async => const Right(location));
+    when(
+      () => mockLocationService.getCurrentLocation(),
+    ).thenAnswer((_) async => const Right(location));
     // Default: reverse geocoding the device location resolves to Bengaluru.
     // Individual tests override this when they specifically want to
     // exercise a reverse-geocoding failure.
@@ -114,12 +141,15 @@ void main() {
     // Favorites/cache aren't under test here — a mocked, no-op-but-real
     // Either keeps this file off real Hive I/O (a real box *write* never
     // resolves under `testWidgets`' fake-async pump clock).
-    when(() => mockFavoritesRepository.getFavorites())
-        .thenAnswer((_) async => const Right([]));
-    when(() => mockFavoritesRepository.addFavorite(any()))
-        .thenAnswer((_) async => const Right(unit));
-    when(() => mockFavoritesRepository.removeFavorite(any()))
-        .thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockFavoritesRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([]));
+    when(
+      () => mockFavoritesRepository.addFavorite(any()),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockFavoritesRepository.removeFavorite(any()),
+    ).thenAnswer((_) async => const Right(unit));
     when(
       () => mockWeatherCacheRepository.saveCurrentWeather(
         latitude: any(named: 'latitude'),
@@ -176,14 +206,18 @@ void main() {
         locationServiceProvider.overrideWithValue(mockLocationService),
         geocodingRepositoryProvider.overrideWithValue(mockGeocodingRepository),
         favoritesRepositoryProvider.overrideWithValue(mockFavoritesRepository),
-        weatherCacheRepositoryProvider.overrideWithValue(mockWeatherCacheRepository),
+        weatherCacheRepositoryProvider.overrideWithValue(
+          mockWeatherCacheRepository,
+        ),
+        connectivityServiceProvider.overrideWithValue(fakeConnectivity),
       ],
       child: const MaterialApp(home: HomeScreen()),
     );
   }
 
-  testWidgets('shows a loading indicator, then the weather on success',
-      (tester) async {
+  testWidgets('shows a loading indicator, then the weather on success', (
+    tester,
+  ) async {
     stubWeatherSuccess();
 
     await tester.pumpWidget(buildSubject());
@@ -208,8 +242,9 @@ void main() {
     expect(find.text('IN'), findsOneWidget);
   });
 
-  testWidgets('shows an error view with retry when weather fetch fails',
-      (tester) async {
+  testWidgets('shows an error view with retry when weather fetch fails', (
+    tester,
+  ) async {
     when(
       () => mockRepository.getCurrentWeather(
         latitude: any(named: 'latitude'),
@@ -234,6 +269,7 @@ void main() {
     'falls back to cached weather and shows an offline banner when the '
     'live fetch fails but a cache exists',
     (tester) async {
+      fakeConnectivity.online = false;
       when(
         () => mockRepository.getCurrentWeather(
           latitude: any(named: 'latitude'),
@@ -253,7 +289,8 @@ void main() {
           longitude: any(named: 'longitude'),
         ),
       ).thenAnswer(
-        (_) async => Right(CachedCurrentWeather(weather: weather, fetchedAt: cachedAt)),
+        (_) async =>
+            Right(CachedCurrentWeather(weather: weather, fetchedAt: cachedAt)),
       );
 
       await tester.pumpWidget(buildSubject());
@@ -266,9 +303,144 @@ void main() {
   );
 
   testWidgets(
+    'shows the cached city name, not "Current Location", when offline and '
+    'reverse geocoding is unavailable',
+    (tester) async {
+      when(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+      when(
+        () => mockRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => Right(forecast));
+      when(
+        () => mockGeocodingRepository.reverseGeocode(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+      when(
+        () => mockWeatherCacheRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => Right(
+          CachedCurrentWeather(
+            weather: weather,
+            fetchedAt: DateTime(2026, 9, 17, 8, 0),
+            cityName: 'Tokyo',
+            country: 'JP',
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Current Location'), findsNothing);
+      expect(find.text('Tokyo'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'saves the reverse-geocoded city with the cache even though weather '
+    'resolves first',
+    (tester) async {
+      stubWeatherSuccess();
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockWeatherCacheRepository.saveCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          weather: any(named: 'weather'),
+          fetchedAt: any(named: 'fetchedAt'),
+          cityName: any(named: 'cityName', that: isNotNull),
+          country: any(named: 'country'),
+        ),
+      ).called(1);
+    },
+  );
+
+  testWidgets(
+    'hides the offline banner and shows live data once the connection is '
+    'restored',
+    (tester) async {
+      fakeConnectivity.online = false;
+      var online = false;
+      when(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => online
+            ? Right(weather)
+            : const Left(RemoteDataFailure('No connection')),
+      );
+      when(
+        () => mockRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => online
+            ? Right(forecast)
+            : const Left(RemoteDataFailure('No connection')),
+      );
+      when(
+        () => mockWeatherCacheRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => Right(
+          CachedCurrentWeather(
+            weather: weather,
+            fetchedAt: DateTime(2026, 9, 17, 8, 0),
+          ),
+        ),
+      );
+      when(
+        () => mockWeatherCacheRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer(
+        (_) async => Right(
+          CachedForecast(
+            forecast: forecast,
+            fetchedAt: DateTime(2026, 9, 17, 8, 0),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('offlineBanner')), findsOneWidget);
+
+      online = true;
+      fakeConnectivity.emit(true);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('offlineBanner')), findsNothing);
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'falls back to cached forecast and shows an offline banner when only the '
     'forecast fetch fails, even though current weather succeeds live',
     (tester) async {
+      fakeConnectivity.online = false;
       when(
         () => mockRepository.getCurrentWeather(
           latitude: any(named: 'latitude'),
@@ -288,7 +460,8 @@ void main() {
           longitude: any(named: 'longitude'),
         ),
       ).thenAnswer(
-        (_) async => Right(CachedForecast(forecast: forecast, fetchedAt: cachedAt)),
+        (_) async =>
+            Right(CachedForecast(forecast: forecast, fetchedAt: cachedAt)),
       );
 
       await tester.pumpWidget(buildSubject());
@@ -303,20 +476,110 @@ void main() {
     },
   );
 
-  testWidgets('shows an error view with retry when location permission is denied',
-      (tester) async {
-    when(() => mockLocationService.getCurrentLocation()).thenAnswer(
-      (_) async => const Left(
-        LocationPermissionDeniedFailure('Location permission was denied.'),
-      ),
-    );
+  testWidgets(
+    'shows the offline banner immediately when connectivity is lost, without '
+    'refetching, and hides it as soon as it returns',
+    (tester) async {
+      stubWeatherSuccess();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('offlineBanner')), findsNothing);
 
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
+      fakeConnectivity.emit(false);
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const Key('offlineBanner')), findsOneWidget);
+      // The live data stays on screen; going offline alone fetches nothing.
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      verify(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).called(1);
 
-    expect(find.text('Location permission was denied.'), findsOneWidget);
-    expect(find.text('Retry'), findsOneWidget);
-  });
+      fakeConnectivity.emit(true);
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const Key('offlineBanner')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'restoring connectivity fetches fresh data from the API and syncs it to '
+    'the cache, even when the data on screen was live',
+    (tester) async {
+      stubWeatherSuccess();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      fakeConnectivity.emit(false);
+      await tester.pumpAndSettle();
+      fakeConnectivity.emit(true);
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).called(2);
+      verify(
+        () => mockWeatherCacheRepository.saveCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          weather: any(named: 'weather'),
+          fetchedAt: any(named: 'fetchedAt'),
+          cityName: any(named: 'cityName'),
+          country: any(named: 'country'),
+        ),
+      ).called(2);
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'while online, uses the API and never the cache; repeated online readings '
+    'do not refetch',
+    (tester) async {
+      stubWeatherSuccess();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      fakeConnectivity.emit(true);
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).called(1);
+      verifyNever(
+        () => mockWeatherCacheRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      );
+    },
+  );
+
+  testWidgets(
+    'shows an error view with retry when location permission is denied',
+    (tester) async {
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer(
+        (_) async => const Left(
+          LocationPermissionDeniedFailure('Location permission was denied.'),
+        ),
+      );
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Location permission was denied.'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    },
+  );
 
   testWidgets('tapping retry re-fetches and shows the weather', (tester) async {
     when(
@@ -388,16 +651,14 @@ void main() {
       find.byKey(const Key('homeContentConstraint')),
     );
 
-    expect(
-      constrainedBox.constraints.maxWidth,
-      lessThan(1024),
-    );
+    expect(constrainedBox.constraints.maxWidth, lessThan(1024));
 
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('lays out without overflow on a small phone width',
-      (tester) async {
+  testWidgets('lays out without overflow on a small phone width', (
+    tester,
+  ) async {
     stubWeatherSuccess();
 
     await tester.binding.setSurfaceSize(const Size(320, 640));
@@ -409,8 +670,9 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('lays out without overflow on a large tablet width',
-      (tester) async {
+  testWidgets('lays out without overflow on a large tablet width', (
+    tester,
+  ) async {
     stubWeatherSuccess();
 
     await tester.binding.setSurfaceSize(const Size(1366, 1024));
@@ -434,7 +696,10 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('citySearchTextField')));
-      await tester.enterText(find.byKey(const Key('citySearchTextField')), 'Lon');
+      await tester.enterText(
+        find.byKey(const Key('citySearchTextField')),
+        'Lon',
+      );
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
@@ -455,7 +720,10 @@ void main() {
       );
       expect(textField.controller!.text, 'London');
       verify(
-        () => mockRepository.getCurrentWeather(latitude: 51.5072, longitude: -0.1276),
+        () => mockRepository.getCurrentWeather(
+          latitude: 51.5072,
+          longitude: -0.1276,
+        ),
       ).called(1);
     },
   );
@@ -472,7 +740,10 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('citySearchTextField')));
-      await tester.enterText(find.byKey(const Key('citySearchTextField')), 'Lon');
+      await tester.enterText(
+        find.byKey(const Key('citySearchTextField')),
+        'Lon',
+      );
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       await tester.tap(find.text(london.displayLabel));
@@ -507,7 +778,9 @@ void main() {
     'location service instead of reusing the one resolved at app launch',
     (tester) async {
       var locationCallCount = 0;
-      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((
+        _,
+      ) async {
         locationCallCount++;
         return const Right(location);
       });
@@ -523,42 +796,42 @@ void main() {
       expect(
         locationCallCount,
         2,
-        reason: 'tapping the location button must ask the location service '
+        reason:
+            'tapping the location button must ask the location service '
             'for a fresh fix, not just reuse the one from app launch',
       );
     },
   );
 
-  testWidgets(
-    'tapping use-my-location surfaces a fresh location failure (e.g. '
-    'permission revoked) as a snackbar, keeping the previous weather on '
-    'screen instead of replacing it with the full-screen error view',
-    (tester) async {
-      var locationCallCount = 0;
-      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
-        locationCallCount++;
-        if (locationCallCount == 1) return const Right(location);
-        return const Left(
-          LocationPermissionDeniedFailure('Location permission was denied.'),
-        );
-      });
-      stubWeatherSuccess();
+  testWidgets('tapping use-my-location surfaces a fresh location failure (e.g. '
+      'permission revoked) as a snackbar, keeping the previous weather on '
+      'screen instead of replacing it with the full-screen error view', (
+    tester,
+  ) async {
+    var locationCallCount = 0;
+    when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+      locationCallCount++;
+      if (locationCallCount == 1) return const Right(location);
+      return const Left(
+        LocationPermissionDeniedFailure('Location permission was denied.'),
+      );
+    });
+    stubWeatherSuccess();
 
-      await tester.pumpWidget(buildSubject());
-      await tester.pumpAndSettle();
-      expect(find.text('Partly Cloudy'), findsOneWidget);
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+    expect(find.text('Partly Cloudy'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('useMyLocationButton')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('useMyLocationButton')));
+    await tester.pumpAndSettle();
 
-      // The rest of the app — including the previously-loaded weather —
-      // stays put; only a transient snackbar reports the failure.
-      expect(find.byType(WeatherErrorView), findsNothing);
-      expect(find.text('Partly Cloudy'), findsOneWidget);
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Location permission was denied.'), findsOneWidget);
-    },
-  );
+    // The rest of the app — including the previously-loaded weather —
+    // stays put; only a transient snackbar reports the failure.
+    expect(find.byType(WeatherErrorView), findsNothing);
+    expect(find.text('Partly Cloudy'), findsOneWidget);
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Location permission was denied.'), findsOneWidget);
+  });
 
   testWidgets(
     'tapping use-my-location shows a loading indicator only on the button '
@@ -625,7 +898,9 @@ void main() {
           latitude: any(named: 'latitude'),
           longitude: any(named: 'longitude'),
         ),
-      ).thenAnswer((_) async => const Left(RemoteDataFailure('No match found')));
+      ).thenAnswer(
+        (_) async => const Left(RemoteDataFailure('No match found')),
+      );
 
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();

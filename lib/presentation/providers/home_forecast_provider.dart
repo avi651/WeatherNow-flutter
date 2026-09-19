@@ -8,6 +8,7 @@ import 'active_city_provider.dart';
 import 'active_location_provider.dart';
 import 'current_location_provider.dart';
 import 'home_weather_exception.dart';
+import 'offline_data_enabled_provider.dart';
 import 'settings_provider.dart';
 import 'weather_freshness_provider.dart';
 
@@ -19,7 +20,13 @@ import 'weather_freshness_provider.dart';
 /// forecast exists for this location.
 class HomeForecastNotifier extends AsyncNotifier<Forecast> {
   @override
-  Future<Forecast> build() => _fetch();
+  Future<Forecast> build() {
+    // See [HomeWeatherNotifier.build].
+    ref.listen(offlineDataEnabledProvider, (previous, enabled) {
+      if (previous == false && enabled) _persistLiveData();
+    });
+    return _fetch();
+  }
 
   Future<Forecast> _fetch() async {
     final location = await ref.watch(activeLocationProvider.future);
@@ -40,25 +47,45 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
     Forecast forecast,
   ) async {
     final fetchedAt = DateTime.now();
-    final activeCity = ref.read(activeCityProvider);
-    final settings = await ref.read(settingsProvider.future);
-
-    if (settings.offlineDataEnabled) {
-      await ref.read(weatherCacheRepositoryProvider).saveForecast(
-            latitude: location.latitude,
-            longitude: location.longitude,
-            forecast: forecast,
-            fetchedAt: fetchedAt,
-            cityName: activeCity?.name,
-            country: activeCity?.country,
-          );
-    }
+    await _saveToCache(location, forecast, fetchedAt);
 
     ref
         .read(forecastFreshnessProvider.notifier)
         .report(WeatherFreshness(isFromCache: false, fetchedAt: fetchedAt));
 
     return forecast;
+  }
+
+  /// Writes [forecast] to the cache if — and only if — Offline Data is on.
+  Future<void> _saveToCache(
+    DeviceLocation location,
+    Forecast forecast,
+    DateTime fetchedAt,
+  ) async {
+    final settings = await ref.read(settingsProvider.future);
+    if (!settings.offlineDataEnabled) return;
+
+    final activeCity = await resolveActiveCity(ref);
+    await ref
+        .read(weatherCacheRepositoryProvider)
+        .saveForecast(
+          latitude: location.latitude,
+          longitude: location.longitude,
+          forecast: forecast,
+          fetchedAt: fetchedAt,
+          cityName: activeCity?.name,
+          country: activeCity?.country,
+        );
+  }
+
+  /// See [HomeWeatherNotifier._persistLiveData].
+  Future<void> _persistLiveData() async {
+    final forecast = state.value;
+    final freshness = ref.read(forecastFreshnessProvider);
+    if (forecast == null || freshness == null || freshness.isFromCache) return;
+
+    final location = await ref.read(activeLocationProvider.future);
+    await _saveToCache(location, forecast, freshness.fetchedAt);
   }
 
   /// Mirrors [HomeWeatherNotifier._fallbackToCache]: falls back to the last
@@ -74,7 +101,9 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
       throw HomeWeatherFailureException(failure.message);
     }
 
-    final cached = await ref.read(weatherCacheRepositoryProvider).getForecast(
+    final cached = await ref
+        .read(weatherCacheRepositoryProvider)
+        .getForecast(
           latitude: location.latitude,
           longitude: location.longitude,
         );
@@ -84,7 +113,9 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
       throw HomeWeatherFailureException(failure.message);
     }
 
-    ref.read(forecastFreshnessProvider.notifier).report(
+    ref
+        .read(forecastFreshnessProvider.notifier)
+        .report(
           WeatherFreshness(isFromCache: true, fetchedAt: snapshot.fetchedAt),
         );
 
@@ -103,7 +134,8 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
 /// `retry: null` opts out of Riverpod's default exponential-backoff
 /// auto-retry — see `currentLocationProvider` for why: [retry] above is
 /// this app's deliberate, user-triggered retry path.
-final homeForecastProvider = AsyncNotifierProvider<HomeForecastNotifier, Forecast>(
-  HomeForecastNotifier.new,
-  retry: (retryCount, error) => null,
-);
+final homeForecastProvider =
+    AsyncNotifierProvider<HomeForecastNotifier, Forecast>(
+      HomeForecastNotifier.new,
+      retry: (retryCount, error) => null,
+    );
