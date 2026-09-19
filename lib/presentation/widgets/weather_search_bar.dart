@@ -43,6 +43,8 @@ class WeatherSearchBar extends ConsumerStatefulWidget {
 }
 
 class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
+  static const double _contentHeight = 40;
+
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
 
@@ -182,42 +184,48 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
             borderRadius: BorderRadius.circular(AppSpacing.xl),
             border: Border.all(color: theme.colorScheme.outlineVariant),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: SearchInputField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Material(
-                color: theme.colorScheme.primary.withValues(alpha: 0.16),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  key: const Key('useMyLocationButton'),
-                  customBorder: const CircleBorder(),
-                  onTap: isLocating ? null : _useMyLocation,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xs),
-                    child: isLocating
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: theme.colorScheme.primary,
-                            ),
-                          )
-                        : Icon(
-                            Icons.my_location,
-                            size: 18,
-                            color: theme.colorScheme.primary,
-                          ),
+          // Fixed content height: the clear button (only present while
+          // there's text) is taller than the empty-state content, so without
+          // this the bar grew when typing and shrank when cleared.
+          child: SizedBox(
+            height: _contentHeight,
+            child: Row(
+              children: [
+                Expanded(
+                  child: SearchInputField(
+                    controller: _controller,
+                    focusNode: _focusNode,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: AppSpacing.sm),
+                Material(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.16),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    key: const Key('useMyLocationButton'),
+                    customBorder: const CircleBorder(),
+                    onTap: isLocating ? null : _useMyLocation,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      child: isLocating
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.colorScheme.primary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.my_location,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (showSuggestions)

@@ -35,4 +35,14 @@ class LastSearchedCityStore {
       // Losing the "last city" convenience must never break selection.
     }
   }
+
+  /// Forgets the saved city, so the next launch falls back to the device's
+  /// location (see `SelectedCityNotifier.useDeviceLocation`).
+  Future<void> clear() async {
+    try {
+      await _box.delete(_key);
+    } catch (_) {
+      // Same as [write]: a failed housekeeping write must not break the UI.
+    }
+  }
 }

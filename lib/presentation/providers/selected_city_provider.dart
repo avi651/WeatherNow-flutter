@@ -21,7 +21,16 @@ class SelectedCityNotifier extends Notifier<CitySuggestion?> {
     if (remember) ref.read(lastSearchedCityStoreProvider).write(city);
   }
 
-  void useDeviceLocation() => state = null;
+  /// Switches back to the device's location. That is the user's latest
+  /// explicit choice about "where", so it also forgets the saved last
+  /// searched city: otherwise the next launch would silently revert to a
+  /// city the user has since moved away from, and the startup rule ("a saved
+  /// city is restored, otherwise detect the location") would contradict what
+  /// the user last asked for.
+  void useDeviceLocation() {
+    state = null;
+    ref.read(lastSearchedCityStoreProvider).clear();
+  }
 }
 
 final selectedCityProvider =

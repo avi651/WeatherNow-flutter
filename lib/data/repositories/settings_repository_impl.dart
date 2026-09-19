@@ -1,5 +1,7 @@
 import 'package:dartz/dartz.dart';
 
+import '../../core/error/error_logger.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/error/cache_failures.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/app_settings.dart';
@@ -34,8 +36,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
               AppSettings.defaults.offlineDataEnabled,
         ),
       );
-    } catch (error) {
-      return Left(CacheFailure('Failed to read settings: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to read settings', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageReadError));
     }
   }
 
@@ -46,8 +49,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       await _localDataSource.setTemperatureUnit(value.name);
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to save temperature unit: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to save temperature unit', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 
@@ -56,8 +60,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       await _localDataSource.setThemeMode(value.name);
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to save theme mode: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to save theme mode', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 
@@ -66,8 +71,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       await _localDataSource.setOfflineDataEnabled(value);
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to save offline data setting: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to save offline data setting', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 

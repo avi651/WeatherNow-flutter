@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
+import '../error/error_logger.dart';
 import '../error/failures.dart';
 import '../error/network_failures.dart';
 
@@ -26,14 +27,19 @@ class DioExceptionMapper {
         return _mapBadResponse(error.response?.statusCode);
 
       case DioExceptionType.badCertificate:
+        logError('Bad certificate', error);
+        return const UnknownFailure(AppStrings.secureConnectionFailed);
+
       case DioExceptionType.unknown:
-        return UnknownFailure(error.message ?? AppStrings.unknownNetworkError);
+        logError('Unknown network error', error);
+        return const UnknownFailure(AppStrings.unknownNetworkError);
     }
   }
 
   /// Maps unexpected errors to an UnknownFailure.
   Failure mapUnknownError(Object error) {
-    return UnknownFailure('Unexpected error: $error');
+    logError('Unexpected error', error);
+    return const UnknownFailure(AppStrings.unexpectedError);
   }
 
   /// Gives a 4xx/5xx response a message specific enough to act on — e.g.

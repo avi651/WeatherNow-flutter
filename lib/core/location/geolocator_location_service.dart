@@ -4,39 +4,40 @@ import 'package:dartz/dartz.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
+import '../error/error_logger.dart';
 import '../error/failures.dart';
 import '../error/location_failures.dart';
 import 'device_location.dart';
+import 'geolocator_client.dart';
 import 'location_permission_status.dart';
 import 'location_service.dart';
 
-/// Resolves the device's current location via the `geolocator` plugin,
+/// Resolves the device's current location via a [GeolocatorClient],
 /// handling the service-enabled and permission checks it requires.
 ///
-/// Not unit tested directly: `Geolocator`'s API is a set of static
-/// methods backed by platform channels, so there's no injectable client
-/// to mock the way `Dio` or `ApiClient` can be. Instead, this class is
-/// kept as a thin, easily-read pass-through, and everything that
-/// *consumes* [LocationService] is tested against the abstraction with a
-/// mock — the same way this codebase never unit-tested that `Dio`
-/// performs real HTTP requests either.
+/// The client defaults to the real `geolocator` plugin; tests inject a fake
+/// (see `geolocator_location_service_test.dart`).
 class GeolocatorLocationService implements LocationService {
-  const GeolocatorLocationService();
+  const GeolocatorLocationService({
+    GeolocatorClient client = const PlatformGeolocatorClient(),
+  }) : _client = client;
+
+  final GeolocatorClient _client;
 
   static const positionTimeout = Duration(seconds: 15);
 
   @override
   Future<Either<Failure, DeviceLocation>> getCurrentLocation() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled = await _client.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return const Left(
         LocationServiceDisabledFailure(AppStrings.locationServicesDisabled),
       );
     }
 
-    var permission = await Geolocator.checkPermission();
+    var permission = await _client.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await _client.requestPermission();
       if (permission == LocationPermission.denied) {
         return const Left(
           LocationPermissionDeniedFailure(AppStrings.locationPermissionDenied),
@@ -56,37 +57,28 @@ class GeolocatorLocationService implements LocationService {
       // Both limits matter: `timeLimit` is honored by the platform
       // plugins, while `.timeout` guarantees we stop waiting even when a
       // platform never reports (e.g. iOS Simulator with no location set).
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: positionTimeout,
-        ),
-      ).timeout(positionTimeout);
-      return Right(
-        DeviceLocation(
-          latitude: position.latitude,
-          longitude: position.longitude,
-        ),
-      );
+      final location = await _client
+          .getCurrentLocation(timeLimit: positionTimeout)
+          .timeout(positionTimeout);
+      return Right(location);
     } on TimeoutException {
       return const Left(
         LocationUnavailableFailure(AppStrings.locationTimedOut),
       );
     } catch (error) {
-      return Left(
-        LocationUnavailableFailure(
-          'Could not determine current location: $error',
-        ),
+      logError('Could not determine current location', error);
+      return const Left(
+        LocationUnavailableFailure(AppStrings.locationUnavailable),
       );
     }
   }
 
   @override
   Future<LocationPermissionStatus> checkPermissionStatus() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled = await _client.isLocationServiceEnabled();
     if (!serviceEnabled) return LocationPermissionStatus.serviceDisabled;
 
-    final permission = await Geolocator.checkPermission();
+    final permission = await _client.checkPermission();
     return switch (permission) {
       LocationPermission.always ||
       LocationPermission.whileInUse => LocationPermissionStatus.granted,
@@ -99,12 +91,12 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<LocationPermissionStatus> requestPermission() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled = await _client.isLocationServiceEnabled();
     if (!serviceEnabled) return LocationPermissionStatus.serviceDisabled;
 
-    var permission = await Geolocator.checkPermission();
+    var permission = await _client.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await _client.requestPermission();
     }
 
     return switch (permission) {
@@ -119,11 +111,11 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<void> openLocationSettings() async {
-    await Geolocator.openLocationSettings();
+    await _client.openLocationSettings();
   }
 
   @override
   Future<void> openAppSettings() async {
-    await Geolocator.openAppSettings();
+    await _client.openAppSettings();
   }
 }

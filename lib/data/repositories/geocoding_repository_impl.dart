@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/error/data_failures.dart';
+import '../../core/error/error_logger.dart';
 import '../../core/error/failures.dart';
 import '../../core/error/geocoding_api_exception.dart';
 import '../../domain/entities/city_suggestion.dart';
@@ -58,10 +59,9 @@ class GeocodingRepositoryImpl implements GeocodingRepository {
       return Left(
         RemoteDataFailure(error.message, statusCode: error.statusCode),
       );
-    } catch (error) {
-      return Left(
-        DataParsingFailure('Failed to parse city search response: $error'),
-      );
+    } catch (error, stackTrace) {
+      logError('Failed to parse city search response', error, stackTrace);
+      return const Left(DataParsingFailure(AppStrings.citySearchParseError));
     }
   }
 }

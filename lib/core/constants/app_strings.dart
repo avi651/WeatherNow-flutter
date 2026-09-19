@@ -134,6 +134,8 @@ abstract final class AppStrings {
   // Errors
   static const locationServicesDisabled =
       'Location services are turned off. Please enable them to see weather for your location.';
+  static const locationUnavailable =
+      'Could not determine your current location. Please try again.';
   static const locationPermissionDenied = 'Location permission was denied.';
   static const locationPermissionDeniedForever =
       'Location permission is permanently denied. Enable it from system settings.';
@@ -145,7 +147,18 @@ abstract final class AppStrings {
   static const requestTimedOut = 'The request timed out';
   static const requestCancelled = 'The request was cancelled';
   static const noInternet = 'No internet connection';
-  static const unknownNetworkError = 'An unknown network error occurred';
+  static const unknownNetworkError =
+      'Something went wrong while connecting. Please try again.';
+  static const secureConnectionFailed =
+      'Could not establish a secure connection. Please try again later.';
+  static const unexpectedError = 'Something went wrong. Please try again.';
+  static const weatherParseError =
+      'We received unexpected weather data. Please try again later.';
+  static const citySearchParseError =
+      'We received unexpected search results. Please try again later.';
+  static const storageReadError = 'Could not read saved data on this device.';
+  static const storageWriteError =
+      'Could not save your changes on this device.';
   static const invalidApiKey = 'Invalid or unauthorized API key';
   static const rateLimitExceeded =
       'Too many requests — rate limit exceeded, please try again later';

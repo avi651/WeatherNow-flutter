@@ -1,6 +1,8 @@
 import 'package:dartz/dartz.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/error/data_failures.dart';
+import '../../core/error/error_logger.dart';
 import '../../core/error/failures.dart';
 import '../../core/error/weather_api_exception.dart';
 import '../../domain/entities/current_weather.dart';
@@ -55,10 +57,9 @@ class WeatherRepositoryImpl implements WeatherRepository {
       return Left(
         RemoteDataFailure(error.message, statusCode: error.statusCode),
       );
-    } catch (error) {
-      return Left(
-        DataParsingFailure('Failed to parse weather response: $error'),
-      );
+    } catch (error, stackTrace) {
+      logError('Failed to parse weather response', error, stackTrace);
+      return const Left(DataParsingFailure(AppStrings.weatherParseError));
     }
   }
 }

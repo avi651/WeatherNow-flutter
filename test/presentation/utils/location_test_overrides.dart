@@ -15,6 +15,9 @@ class FakeLastSearchedCityStore implements LastSearchedCityStore {
 
   @override
   Future<void> write(CitySuggestion value) async => city = value;
+
+  @override
+  Future<void> clear() async => city = null;
 }
 
 /// Startup-related overrides: an in-memory last-searched-city store,

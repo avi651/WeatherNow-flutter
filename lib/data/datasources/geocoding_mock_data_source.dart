@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'geocoding_data_source.dart';
 
 /// A bundled list of major world cities, filtered in-memory by name
@@ -613,30 +615,60 @@ class GeocodingMockDataSource implements GeocodingDataSource {
     required double longitude,
   }) async {
     Map<String, dynamic>? nearest;
-    var nearestDistance = double.infinity;
+    var nearestDistanceKm = double.infinity;
 
     for (final city in _cities) {
-      final dLat = (city['lat'] as num).toDouble() - latitude;
-      final dLon = (city['lon'] as num).toDouble() - longitude;
-      final distance = dLat * dLat + dLon * dLon;
+      final distanceKm = haversineKm(
+        latitude,
+        longitude,
+        (city['lat'] as num).toDouble(),
+        (city['lon'] as num).toDouble(),
+      );
 
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
+      if (distanceKm < nearestDistanceKm) {
+        nearestDistanceKm = distanceKm;
         nearest = city;
       }
     }
 
-    // Only a genuinely close bundled city counts as a match (~0.5° is
-    // about 55 km). Beyond that there is no honest answer, so return
-    // nothing rather than pinning the device to whichever bundled city
-    // happens to be least far away (e.g. an Indian city for a device in
-    // California) — callers then fall back to a generic label.
-    if (nearest == null || nearestDistance > _maxMatchDistanceSquared) {
+    // Only a genuinely close bundled city counts as a match. Beyond
+    // [maxMatchDistanceKm] there is no honest answer, so return nothing
+    // rather than pinning the device to whichever bundled city happens to
+    // be least far away (e.g. an Indian city for a device in California) —
+    // callers then fall back to a generic label.
+    if (nearest == null || nearestDistanceKm > maxMatchDistanceKm) {
       return const [];
     }
 
     return [nearest];
   }
 
-  static const _maxMatchDistanceSquared = 0.5 * 0.5;
+  /// Maximum great-circle distance, in kilometres, between the device and a
+  /// bundled city for the city to count as the device's location.
+  static const maxMatchDistanceKm = 55.0;
+
+  static const _earthRadiusKm = 6371.0;
+
+  /// Great-circle distance in kilometres between two points given in
+  /// degrees. Unlike a raw lat/lon comparison it accounts for longitude
+  /// lines converging towards the poles and for wrapping across the
+  /// antimeridian (±180°).
+  static double haversineKm(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    final dLat = _radians(lat2 - lat1);
+    final dLon = _radians(lon2 - lon1);
+    final a =
+        math.pow(math.sin(dLat / 2), 2) +
+        math.cos(_radians(lat1)) *
+            math.cos(_radians(lat2)) *
+            math.pow(math.sin(dLon / 2), 2);
+
+    return 2 * _earthRadiusKm * math.asin(math.sqrt(a.clamp(0.0, 1.0)));
+  }
+
+  static double _radians(double degrees) => degrees * math.pi / 180;
 }

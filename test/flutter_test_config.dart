@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:weather_now_flutter/data/local/hive_boxes.dart';
 
+import 'support/captured_error_logs.dart';
+
 /// Global test setup, run once per test file before its `main()`.
 ///
 /// Initializes Hive against a throwaway temp directory (plain [Hive.init],
@@ -29,6 +31,10 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   await HiveBoxes.openAll();
 
   setUp(() async {
+    // Handled failures are logged by design; capture them instead of
+    // printing so the test output stays readable (assert on
+    // `capturedErrorLogs` where the log itself matters).
+    captureErrorLogs();
     // Re-open defensively: something about the transition from this
     // top-level setup into each test's own zone closes Hive's open boxes
     // (same `Hive` instance, different `Zone`) even though nothing here

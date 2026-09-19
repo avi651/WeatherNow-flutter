@@ -206,5 +206,94 @@ void main() {
         ).called(1);
       },
     );
+
+    group('last searched city vs. the Current Location button', () {
+      const pune = CitySuggestion(
+        name: 'Pune',
+        state: 'Maharashtra',
+        country: 'IN',
+        latitude: 18.52,
+        longitude: 73.85,
+      );
+      const sydneyDevice = DeviceLocation(latitude: -33.87, longitude: 151.2);
+
+      /// A second container over the same store stands in for an app
+      /// restart: Riverpod state is gone, only persisted data remains.
+      ProviderContainer restart(FakeLastSearchedCityStore store) =>
+          buildFor(sydneyDevice, store: store);
+
+      test('search Pune -> Current Location -> restart detects the device '
+          'location instead of restoring Pune', () async {
+        final store = FakeLastSearchedCityStore();
+        final session = buildFor(sydneyDevice, store: store);
+
+        session
+            .read(selectedCityProvider.notifier)
+            .select(pune, remember: true);
+        expect(store.city, pune);
+
+        session.read(selectedCityProvider.notifier).useDeviceLocation();
+        expect(store.city, isNull);
+
+        clearInteractions(locationService);
+        final relaunched = restart(store);
+        expect(relaunched.read(selectedCityProvider), isNull);
+
+        await relaunched.read(homeWeatherProvider.future);
+        verify(() => locationService.getCurrentLocation()).called(1);
+        verify(
+          () => weatherRepository.getCurrentWeather(
+            latitude: sydneyDevice.latitude,
+            longitude: sydneyDevice.longitude,
+          ),
+        ).called(1);
+      });
+
+      test('search Pune -> restart (no Current Location tap) restores Pune '
+          'without asking the device', () async {
+        final store = FakeLastSearchedCityStore();
+        buildFor(
+          sydneyDevice,
+          store: store,
+        ).read(selectedCityProvider.notifier).select(pune, remember: true);
+
+        final relaunched = restart(store);
+        await relaunched.read(homeWeatherProvider.future);
+
+        expect(relaunched.read(selectedCityProvider), pune);
+        verifyNever(() => locationService.getCurrentLocation());
+      });
+
+      test('Current Location overrides a selected city in the same session '
+          'and clears the persisted one', () async {
+        final store = FakeLastSearchedCityStore(pune);
+        final container = buildFor(sydneyDevice, store: store);
+        await container.read(homeWeatherProvider.future);
+        expect(container.read(selectedCityProvider), pune);
+
+        container.read(selectedCityProvider.notifier).useDeviceLocation();
+        await container.read(homeWeatherProvider.future);
+
+        expect(container.read(selectedCityProvider), isNull);
+        expect(store.city, isNull);
+        verify(
+          () => weatherRepository.getCurrentWeather(
+            latitude: sydneyDevice.latitude,
+            longitude: sydneyDevice.longitude,
+          ),
+        ).called(1);
+      });
+
+      test('selecting a favorite (no remember) neither saves nor replaces '
+          'the persisted last searched city', () {
+        final store = FakeLastSearchedCityStore(london);
+        final container = buildFor(sydneyDevice, store: store);
+
+        container.read(selectedCityProvider.notifier).select(pune);
+
+        expect(container.read(selectedCityProvider), pune);
+        expect(store.city, london);
+      });
+    });
   });
 }

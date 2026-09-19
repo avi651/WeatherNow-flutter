@@ -1,5 +1,7 @@
 import 'package:dartz/dartz.dart';
 
+import '../../core/error/error_logger.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/error/cache_failures.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/city_suggestion.dart';
@@ -29,8 +31,9 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
             ..sort((a, b) => a.name.compareTo(b.name));
 
       return Right(cities);
-    } catch (error) {
-      return Left(CacheFailure('Failed to read favorites: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to read favorites', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageReadError));
     }
   }
 
@@ -42,8 +45,9 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
         CitySuggestionModel.fromEntity(city).toJson(),
       );
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to save favorite: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to save favorite', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 
@@ -52,8 +56,9 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
     try {
       await _localDataSource.delete(_keyFor(city));
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to remove favorite: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to remove favorite', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 

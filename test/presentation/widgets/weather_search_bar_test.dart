@@ -65,10 +65,10 @@ void main() {
     );
   }
 
-  ProviderContainer buildContainer() {
+  ProviderContainer buildContainer({FakeLastSearchedCityStore? store}) {
     final container = ProviderContainer(
       overrides: [
-        ...locationTestOverrides(),
+        ...locationTestOverrides(store: store),
         geocodingRepositoryProvider.overrideWithValue(mockRepository),
         locationServiceProvider.overrideWithValue(mockLocationService),
       ],
@@ -519,5 +519,54 @@ void main() {
       find.byKey(const Key('citySearchTextField')),
     );
     expect(textField.controller!.text, 'Pune');
+  });
+
+  testWidgets('searching a city remembers it, and tapping use-my-location '
+      'forgets it so the next launch does not restore it', (tester) async {
+    when(
+      () => mockRepository.searchCities(query: 'Lon'),
+    ).thenAnswer((_) async => const Right([london]));
+
+    final store = FakeLastSearchedCityStore();
+    final container = buildContainer(store: store);
+    await tester.pumpWidget(buildSubject(container: container));
+    await tester.pumpAndSettle();
+
+    await searchAndSettle(tester, 'Lon');
+    await tester.tap(find.text(london.displayLabel));
+    await tester.pump();
+    expect(store.city, london);
+
+    await tester.tap(find.byKey(const Key('useMyLocationButton')));
+    await tester.pumpAndSettle();
+
+    expect(store.city, isNull);
+    expect(container.read(selectedCityProvider), isNull);
+  });
+
+  testWidgets('bar size stays constant while typing and clearing', (
+    tester,
+  ) async {
+    when(
+      () => mockRepository.searchCities(query: any(named: 'query')),
+    ).thenAnswer((_) async => const Right([london]));
+
+    final container = buildContainer();
+    await tester.pumpWidget(buildSubject(container: container));
+    await tester.pumpAndSettle();
+
+    final barFinder = find.byType(WeatherSearchBar);
+    final initial = tester.getSize(barFinder);
+    final initialField = tester.getSize(find.byType(Container).first);
+
+    await tester.enterText(find.byKey(const Key('citySearchTextField')), 'Lon');
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const Key('citySearchClearButton')), findsOneWidget);
+    expect(tester.getSize(find.byType(Container).first), initialField);
+
+    await tester.tap(find.byKey(const Key('citySearchClearButton')));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(Container).first), initialField);
+    expect(tester.getSize(barFinder).width, initial.width);
   });
 }

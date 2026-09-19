@@ -1,5 +1,7 @@
 import 'package:dartz/dartz.dart';
 
+import '../../core/error/error_logger.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/error/cache_failures.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/cached_current_weather.dart';
@@ -43,8 +45,9 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
         model.toJson(),
       );
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to cache current weather: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to cache current weather', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 
@@ -60,10 +63,9 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
       if (json == null) return const Right(null);
 
       return Right(CachedCurrentWeatherModel.fromJson(json).toEntity());
-    } catch (error) {
-      return Left(
-        CacheFailure('Failed to read cached current weather: $error'),
-      );
+    } catch (error, stackTrace) {
+      logError('Failed to read cached current weather', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageReadError));
     }
   }
 
@@ -88,8 +90,9 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
         model.toJson(),
       );
       return const Right(unit);
-    } catch (error) {
-      return Left(CacheFailure('Failed to cache forecast: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to cache forecast', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageWriteError));
     }
   }
 
@@ -103,8 +106,9 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
       if (json == null) return const Right(null);
 
       return Right(CachedForecastModel.fromJson(json).toEntity());
-    } catch (error) {
-      return Left(CacheFailure('Failed to read cached forecast: $error'));
+    } catch (error, stackTrace) {
+      logError('Failed to read cached forecast', error, stackTrace);
+      return const Left(CacheFailure(AppStrings.storageReadError));
     }
   }
 
