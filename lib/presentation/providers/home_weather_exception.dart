@@ -9,3 +9,12 @@ class HomeWeatherFailureException implements Exception {
   @override
   String toString() => message;
 }
+
+/// Thrown by `currentLocationProvider` while a searched city is selected:
+/// the device location isn't needed then, so it must not be requested (no
+/// permission prompt, no GPS wait) just because something watches it.
+/// Consumers that watch it for UI state treat this as "not locating".
+class LocationNotNeededException extends HomeWeatherFailureException {
+  const LocationNotNeededException()
+    : super('A city is selected; device location is not needed.');
+}

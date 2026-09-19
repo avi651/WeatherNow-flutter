@@ -62,7 +62,10 @@ void main() {
     final result = await repository.getFavorites();
 
     expect(result.isRight(), isTrue);
-    result.fold((_) => fail('expected Right'), (favorites) => expect(favorites, isEmpty));
+    result.fold(
+      (_) => fail('expected Right'),
+      (favorites) => expect(favorites, isEmpty),
+    );
   });
 
   test('addFavorite persists the city, then getFavorites returns it', () async {
@@ -70,7 +73,10 @@ void main() {
 
     final result = await repository.getFavorites();
 
-    result.fold((_) => fail('expected Right'), (favorites) => expect(favorites, [pune]));
+    result.fold(
+      (_) => fail('expected Right'),
+      (favorites) => expect(favorites, [pune]),
+    );
   });
 
   test('getFavorites returns saved cities sorted by name', () async {
@@ -92,47 +98,68 @@ void main() {
     await repository.removeFavorite(pune);
 
     final result = await repository.getFavorites();
-    result.fold((_) => fail('expected Right'), (favorites) => expect(favorites, [mumbai]));
+    result.fold(
+      (_) => fail('expected Right'),
+      (favorites) => expect(favorites, [mumbai]),
+    );
+  });
+
+  test('a favorite persists across a new repository instance over the same '
+      'data source — simulating surviving an app restart', () async {
+    await repository.addFavorite(pune);
+
+    final restarted = FavoritesRepositoryImpl(localDataSource: dataSource);
+    final result = await restarted.getFavorites();
+
+    result.fold(
+      (_) => fail('expected Right'),
+      (favorites) => expect(favorites, [pune]),
+    );
   });
 
   test(
-    'a favorite persists across a new repository instance over the same '
-    'data source — simulating surviving an app restart',
+    'getFavorites returns a CacheFailure when the data source throws',
     () async {
-      await repository.addFavorite(pune);
+      dataSource.failWith = Exception('disk error');
 
-      final restarted = FavoritesRepositoryImpl(localDataSource: dataSource);
-      final result = await restarted.getFavorites();
+      final result = await repository.getFavorites();
 
-      result.fold((_) => fail('expected Right'), (favorites) => expect(favorites, [pune]));
+      expect(result.isLeft(), isTrue);
+      result.fold(
+        (failure) => expect(failure, isA<CacheFailure>()),
+        (_) => fail('expected Left'),
+      );
     },
   );
 
-  test('getFavorites returns a CacheFailure when the data source throws', () async {
-    dataSource.failWith = Exception('disk error');
+  test(
+    'addFavorite returns a CacheFailure when the data source throws',
+    () async {
+      dataSource.failWith = Exception('disk full');
 
-    final result = await repository.getFavorites();
+      final result = await repository.addFavorite(pune);
 
-    expect(result.isLeft(), isTrue);
-    result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-  });
+      expect(result.isLeft(), isTrue);
+      result.fold(
+        (failure) => expect(failure, isA<CacheFailure>()),
+        (_) => fail('expected Left'),
+      );
+    },
+  );
 
-  test('addFavorite returns a CacheFailure when the data source throws', () async {
-    dataSource.failWith = Exception('disk full');
+  test(
+    'removeFavorite returns a CacheFailure when the data source throws',
+    () async {
+      await repository.addFavorite(pune);
+      dataSource.failWith = Exception('disk full');
 
-    final result = await repository.addFavorite(pune);
+      final result = await repository.removeFavorite(pune);
 
-    expect(result.isLeft(), isTrue);
-    result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-  });
-
-  test('removeFavorite returns a CacheFailure when the data source throws', () async {
-    await repository.addFavorite(pune);
-    dataSource.failWith = Exception('disk full');
-
-    final result = await repository.removeFavorite(pune);
-
-    expect(result.isLeft(), isTrue);
-    result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-  });
+      expect(result.isLeft(), isTrue);
+      result.fold(
+        (failure) => expect(failure, isA<CacheFailure>()),
+        (_) => fail('expected Left'),
+      );
+    },
+  );
 }

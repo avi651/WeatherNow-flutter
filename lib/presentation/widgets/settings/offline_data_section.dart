@@ -14,7 +14,8 @@ class OfflineDataSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(settingsProvider).value?.offlineDataEnabled ??
+    final enabled =
+        ref.watch(settingsProvider).value?.offlineDataEnabled ??
         AppSettings.defaults.offlineDataEnabled;
 
     return SettingsSectionCard(

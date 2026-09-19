@@ -35,7 +35,10 @@ class ApiLoggingInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     debugPrint(
       '$_tag: <-- ${response.statusCode} ${redact(response.requestOptions.uri)}',
     );

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../utils/location_test_overrides.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
 import 'package:weather_now_flutter/core/error/network_failures.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
@@ -31,7 +32,10 @@ void main() {
     longitude: -0.1276,
   );
 
-  const deviceLocation = DeviceLocation(latitude: 18.5213738, longitude: 73.8545071);
+  const deviceLocation = DeviceLocation(
+    latitude: 18.5213738,
+    longitude: 73.8545071,
+  );
   const pune = CitySuggestion(
     name: 'Pune',
     state: 'Maharashtra',
@@ -43,8 +47,9 @@ void main() {
   setUp(() {
     mockRepository = MockGeocodingRepository();
     mockLocationService = MockLocationService();
-    when(() => mockLocationService.getCurrentLocation())
-        .thenAnswer((_) async => const Right(deviceLocation));
+    when(
+      () => mockLocationService.getCurrentLocation(),
+    ).thenAnswer((_) async => const Right(deviceLocation));
     when(
       () => mockRepository.reverseGeocode(
         latitude: any(named: 'latitude'),
@@ -63,6 +68,7 @@ void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
       overrides: [
+        ...locationTestOverrides(),
         geocodingRepositoryProvider.overrideWithValue(mockRepository),
         locationServiceProvider.overrideWithValue(mockLocationService),
       ],
@@ -78,27 +84,32 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('shows the search icon, the input, and a use-my-location button',
-      (tester) async {
-    await tester.pumpWidget(buildSubject(container: buildContainer()));
-    // The location button shows a loading indicator in place of the icon
-    // while the very first device-location resolution is in flight — wait
-    // for that to settle before asserting the idle icon.
-    await tester.pumpAndSettle();
+  testWidgets(
+    'shows the search icon, the input, and a use-my-location button',
+    (tester) async {
+      await tester.pumpWidget(buildSubject(container: buildContainer()));
+      // The location button shows a loading indicator in place of the icon
+      // while the very first device-location resolution is in flight — wait
+      // for that to settle before asserting the idle icon.
+      await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.search), findsOneWidget);
-    expect(find.byIcon(Icons.my_location), findsOneWidget);
-    expect(find.byKey(const Key('citySearchTextField')), findsOneWidget);
-  });
+      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+      expect(find.byKey(const Key('citySearchTextField')), findsOneWidget);
+    },
+  );
 
-  testWidgets('does not show suggestions before the field is focused', (tester) async {
+  testWidgets('does not show suggestions before the field is focused', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSubject(container: buildContainer()));
 
     expect(find.byKey(const Key('citySuggestionsList')), findsNothing);
   });
 
-  testWidgets('shows matching suggestions once the debounced search resolves',
-      (tester) async {
+  testWidgets('shows matching suggestions once the debounced search resolves', (
+    tester,
+  ) async {
     when(
       () => mockRepository.searchCities(query: 'Lon'),
     ).thenAnswer((_) async => const Right([london]));
@@ -120,7 +131,9 @@ void main() {
     expect(find.text('No connection'), findsOneWidget);
   });
 
-  testWidgets('shows an empty-results message when nothing matches', (tester) async {
+  testWidgets('shows an empty-results message when nothing matches', (
+    tester,
+  ) async {
     when(
       () => mockRepository.searchCities(query: 'Zzznotacity'),
     ).thenAnswer((_) async => const Right([]));
@@ -161,9 +174,7 @@ void main() {
     'the selected city name survives a rebuild instead of reverting to the '
     'device location',
     (tester) async {
-      when(
-        () => mockRepository.searchCities(query: 'Mum'),
-      ).thenAnswer(
+      when(() => mockRepository.searchCities(query: 'Mum')).thenAnswer(
         (_) async => const Right([
           CitySuggestion(
             name: 'Mumbai',
@@ -288,26 +299,27 @@ void main() {
     },
   );
 
-  testWidgets(
-    'shows the reverse-geocoded device-location city once resolved',
-    (tester) async {
-      final container = buildContainer();
-      await tester.pumpWidget(buildSubject(container: container));
-      await tester.pumpAndSettle();
+  testWidgets('shows the reverse-geocoded device-location city once resolved', (
+    tester,
+  ) async {
+    final container = buildContainer();
+    await tester.pumpWidget(buildSubject(container: container));
+    await tester.pumpAndSettle();
 
-      final textField = tester.widget<TextField>(
-        find.byKey(const Key('citySearchTextField')),
-      );
-      expect(textField.controller!.text, 'Pune');
-    },
-  );
+    final textField = tester.widget<TextField>(
+      find.byKey(const Key('citySearchTextField')),
+    );
+    expect(textField.controller!.text, 'Pune');
+  });
 
   testWidgets(
     'tapping use-my-location asks the location service for a fresh fix '
     'instead of reusing the one resolved on first build',
     (tester) async {
       var locationCallCount = 0;
-      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((
+        _,
+      ) async {
         locationCallCount++;
         return const Right(deviceLocation);
       });
@@ -329,7 +341,9 @@ void main() {
     'shows the recovered device-location city once granted',
     (tester) async {
       var locationCallCount = 0;
-      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+      when(() => mockLocationService.getCurrentLocation()).thenAnswer((
+        _,
+      ) async {
         locationCallCount++;
         if (locationCallCount == 1) {
           return const Left(
@@ -363,7 +377,8 @@ void main() {
     'shows a loading indicator on the location button while fetching and '
     'disables it so a second tap does not fire a duplicate request',
     (tester) async {
-      final locationCompleter = Completer<Either<LocationServiceDisabledFailure, DeviceLocation>>();
+      final locationCompleter =
+          Completer<Either<LocationServiceDisabledFailure, DeviceLocation>>();
       var locationCallCount = 0;
       when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) {
         locationCallCount++;
@@ -420,32 +435,31 @@ void main() {
     },
   );
 
-  testWidgets(
-    'shows a snackbar with the failure message when a fresh location '
-    'request fails, without blocking the rest of the search bar',
-    (tester) async {
-      var locationCallCount = 0;
-      when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
-        locationCallCount++;
-        if (locationCallCount == 1) return const Right(deviceLocation);
-        return const Left(
-          LocationPermissionDeniedFailure('Location permission was denied.'),
-        );
-      });
+  testWidgets('shows a snackbar with the failure message when a fresh location '
+      'request fails, without blocking the rest of the search bar', (
+    tester,
+  ) async {
+    var locationCallCount = 0;
+    when(() => mockLocationService.getCurrentLocation()).thenAnswer((_) async {
+      locationCallCount++;
+      if (locationCallCount == 1) return const Right(deviceLocation);
+      return const Left(
+        LocationPermissionDeniedFailure('Location permission was denied.'),
+      );
+    });
 
-      final container = buildContainer();
-      await tester.pumpWidget(buildSubject(container: container));
-      await tester.pumpAndSettle();
+    final container = buildContainer();
+    await tester.pumpWidget(buildSubject(container: container));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('useMyLocationButton')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('useMyLocationButton')));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Location permission was denied.'), findsOneWidget);
-      // The rest of the search bar (field, search icon) stays interactive.
-      expect(find.byKey(const Key('citySearchTextField')), findsOneWidget);
-    },
-  );
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Location permission was denied.'), findsOneWidget);
+    // The rest of the search bar (field, search icon) stays interactive.
+    expect(find.byKey(const Key('citySearchTextField')), findsOneWidget);
+  });
 
   testWidgets(
     'tapping the field clears the passive device-location label so a fresh '
@@ -484,29 +498,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'tapping use-my-location after selecting a city shows the '
-    'device-location city, not a blank field',
-    (tester) async {
-      when(
-        () => mockRepository.searchCities(query: 'Lon'),
-      ).thenAnswer((_) async => const Right([london]));
+  testWidgets('tapping use-my-location after selecting a city shows the '
+      'device-location city, not a blank field', (tester) async {
+    when(
+      () => mockRepository.searchCities(query: 'Lon'),
+    ).thenAnswer((_) async => const Right([london]));
 
-      final container = buildContainer();
-      await tester.pumpWidget(buildSubject(container: container));
-      await tester.pumpAndSettle();
+    final container = buildContainer();
+    await tester.pumpWidget(buildSubject(container: container));
+    await tester.pumpAndSettle();
 
-      await searchAndSettle(tester, 'Lon');
-      await tester.tap(find.text(london.displayLabel));
-      await tester.pump();
+    await searchAndSettle(tester, 'Lon');
+    await tester.tap(find.text(london.displayLabel));
+    await tester.pump();
 
-      await tester.tap(find.byKey(const Key('useMyLocationButton')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('useMyLocationButton')));
+    await tester.pumpAndSettle();
 
-      final textField = tester.widget<TextField>(
-        find.byKey(const Key('citySearchTextField')),
-      );
-      expect(textField.controller!.text, 'Pune');
-    },
-  );
+    final textField = tester.widget<TextField>(
+      find.byKey(const Key('citySearchTextField')),
+    );
+    expect(textField.controller!.text, 'Pune');
+  });
 }

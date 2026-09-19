@@ -79,10 +79,7 @@ class _AnimatedSearchPlaceholderState extends State<AnimatedSearchPlaceholder> {
             layoutBuilder: (currentChild, previousChildren) {
               return Stack(
                 alignment: Alignment.centerLeft,
-                children: [
-                  ...previousChildren,
-                  ?currentChild,
-                ],
+                children: [...previousChildren, ?currentChild],
               );
             },
 

@@ -28,7 +28,9 @@ void main() {
 
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
-      overrides: [geocodingRepositoryProvider.overrideWithValue(mockRepository)],
+      overrides: [
+        geocodingRepositoryProvider.overrideWithValue(mockRepository),
+      ],
     );
     addTearDown(container.dispose);
     return container;
@@ -80,16 +82,19 @@ void main() {
     expect(state.isLoading, isFalse);
   });
 
-  test('isEmptyResult is true after a successful search with no matches', () async {
-    when(
-      () => mockRepository.searchCities(query: 'Zzz'),
-    ).thenAnswer((_) async => const Right([]));
+  test(
+    'isEmptyResult is true after a successful search with no matches',
+    () async {
+      when(
+        () => mockRepository.searchCities(query: 'Zzz'),
+      ).thenAnswer((_) async => const Right([]));
 
-    final container = buildContainer();
-    await container.read(citySearchProvider.notifier).search('Zzz');
+      final container = buildContainer();
+      await container.read(citySearchProvider.notifier).search('Zzz');
 
-    expect(container.read(citySearchProvider).isEmptyResult, isTrue);
-  });
+      expect(container.read(citySearchProvider).isEmptyResult, isTrue);
+    },
+  );
 
   test('search with a blank query resets to the initial state', () async {
     when(

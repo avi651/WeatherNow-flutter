@@ -18,7 +18,9 @@ void main() {
     expect(find.text('Search Your City'), findsOneWidget);
   });
 
-  testWidgets('cycles to the next phrase after the interval elapses', (tester) async {
+  testWidgets('cycles to the next phrase after the interval elapses', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: AnimatedSearchPlaceholder(
@@ -36,26 +38,30 @@ void main() {
     expect(find.text('Search Your City'), findsNothing);
   });
 
-  testWidgets('wraps back to the first phrase after cycling through all of them',
-      (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AnimatedSearchPlaceholder(
-          phrases: phrases,
-          interval: Duration(seconds: 2),
+  testWidgets(
+    'wraps back to the first phrase after cycling through all of them',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AnimatedSearchPlaceholder(
+            phrases: phrases,
+            interval: Duration(seconds: 2),
+          ),
         ),
-      ),
-    );
+      );
 
-    for (var i = 0; i < phrases.length; i++) {
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump(const Duration(milliseconds: 650));
-    }
+      for (var i = 0; i < phrases.length; i++) {
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(milliseconds: 650));
+      }
 
-    expect(find.text('Search Your City'), findsOneWidget);
-  });
+      expect(find.text('Search Your City'), findsOneWidget);
+    },
+  );
 
-  testWidgets('cancels its timer on dispose (no pending-timer failure)', (tester) async {
+  testWidgets('cancels its timer on dispose (no pending-timer failure)', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: AnimatedSearchPlaceholder(

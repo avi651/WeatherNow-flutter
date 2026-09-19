@@ -17,7 +17,12 @@ void main() {
         'pressure': 1010,
       },
       'weather': [
-        {'id': 500, 'main': weatherMain, 'description': 'light rain', 'icon': '10d'},
+        {
+          'id': 500,
+          'main': weatherMain,
+          'description': 'light rain',
+          'icon': '10d',
+        },
       ],
       'pop': 0.5,
     };

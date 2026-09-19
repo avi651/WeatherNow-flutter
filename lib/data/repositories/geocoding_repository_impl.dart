@@ -56,9 +56,13 @@ class GeocodingRepositoryImpl implements GeocodingRepository {
     try {
       return Right(await body());
     } on GeocodingApiException catch (error) {
-      return Left(RemoteDataFailure(error.message, statusCode: error.statusCode));
+      return Left(
+        RemoteDataFailure(error.message, statusCode: error.statusCode),
+      );
     } catch (error) {
-      return Left(DataParsingFailure('Failed to parse city search response: $error'));
+      return Left(
+        DataParsingFailure('Failed to parse city search response: $error'),
+      );
     }
   }
 }

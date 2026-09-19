@@ -87,7 +87,9 @@ class _SearchInputFieldState extends ConsumerState<SearchInputField> {
             children: [
               if (isEmpty)
                 const IgnorePointer(
-                  child: AnimatedSearchPlaceholder(phrases: kSearchPlaceholderPhrases),
+                  child: AnimatedSearchPlaceholder(
+                    phrases: kSearchPlaceholderPhrases,
+                  ),
                 ),
               TextField(
                 key: const Key('citySearchTextField'),

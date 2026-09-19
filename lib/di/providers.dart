@@ -21,6 +21,7 @@ import '../data/datasources/weather_cache_local_data_source.dart';
 import '../data/datasources/weather_data_source.dart';
 import '../data/datasources/weather_mock_data_source.dart';
 import '../data/local/hive_boxes.dart';
+import '../data/local/last_searched_city_store.dart';
 import '../data/repositories/favorites_repository_impl.dart';
 import '../data/repositories/geocoding_repository_impl.dart';
 import '../data/repositories/settings_repository_impl.dart';
@@ -223,4 +224,10 @@ final saveThemeModeProvider = Provider<SaveThemeMode>((ref) {
 
 final saveOfflineDataEnabledProvider = Provider<SaveOfflineDataEnabled>((ref) {
   return SaveOfflineDataEnabled(ref.watch(settingsRepositoryProvider));
+});
+
+/// Persists the last searched city so startup can restore it (see
+/// [SelectedCityNotifier]).
+final lastSearchedCityStoreProvider = Provider<LastSearchedCityStore>((ref) {
+  return LastSearchedCityStore(box: ref.watch(settingsBoxProvider));
 });

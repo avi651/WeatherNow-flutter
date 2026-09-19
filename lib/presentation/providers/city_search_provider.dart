@@ -98,6 +98,7 @@ class CitySearchNotifier extends Notifier<CitySearchState> {
   }
 }
 
-final citySearchProvider = NotifierProvider<CitySearchNotifier, CitySearchState>(
-  CitySearchNotifier.new,
-);
+final citySearchProvider =
+    NotifierProvider<CitySearchNotifier, CitySearchState>(
+      CitySearchNotifier.new,
+    );

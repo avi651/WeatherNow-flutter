@@ -21,12 +21,14 @@ void main() {
     expect(dataSource.getOfflineDataEnabled(), isNull);
   });
 
-  test('setTemperatureUnit then getTemperatureUnit returns the saved value',
-      () async {
-    await dataSource.setTemperatureUnit('fahrenheit');
+  test(
+    'setTemperatureUnit then getTemperatureUnit returns the saved value',
+    () async {
+      await dataSource.setTemperatureUnit('fahrenheit');
 
-    expect(dataSource.getTemperatureUnit(), 'fahrenheit');
-  });
+      expect(dataSource.getTemperatureUnit(), 'fahrenheit');
+    },
+  );
 
   test('setThemeMode then getThemeMode returns the saved value', () async {
     await dataSource.setThemeMode('dark');
@@ -34,12 +36,14 @@ void main() {
     expect(dataSource.getThemeMode(), 'dark');
   });
 
-  test('setOfflineDataEnabled then getOfflineDataEnabled returns the saved value',
-      () async {
-    await dataSource.setOfflineDataEnabled(false);
+  test(
+    'setOfflineDataEnabled then getOfflineDataEnabled returns the saved value',
+    () async {
+      await dataSource.setOfflineDataEnabled(false);
 
-    expect(dataSource.getOfflineDataEnabled(), isFalse);
-  });
+      expect(dataSource.getOfflineDataEnabled(), isFalse);
+    },
+  );
 
   test('each setting is stored independently under its own key', () async {
     await dataSource.setTemperatureUnit('fahrenheit');
@@ -51,12 +55,16 @@ void main() {
     expect(dataSource.getOfflineDataEnabled(), isFalse);
   });
 
-  test('a saved value survives a fresh data source over the same box',
-      () async {
-    await dataSource.setTemperatureUnit('fahrenheit');
+  test(
+    'a saved value survives a fresh data source over the same box',
+    () async {
+      await dataSource.setTemperatureUnit('fahrenheit');
 
-    final restarted = HiveSettingsDataSource(box: Hive.box(HiveBoxes.settings));
+      final restarted = HiveSettingsDataSource(
+        box: Hive.box(HiveBoxes.settings),
+      );
 
-    expect(restarted.getTemperatureUnit(), 'fahrenheit');
-  });
+      expect(restarted.getTemperatureUnit(), 'fahrenheit');
+    },
+  );
 }

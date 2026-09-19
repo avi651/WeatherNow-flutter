@@ -18,7 +18,9 @@ import 'current_location_provider.dart';
 /// failure here isn't transient, and there's no user-facing retry
 /// specifically for reverse geocoding — retrying the weather fetch already
 /// re-resolves the device location this depends on.
-final currentLocationCityProvider = FutureProvider<CitySuggestion?>((ref) async {
+final currentLocationCityProvider = FutureProvider<CitySuggestion?>((
+  ref,
+) async {
   final location = await ref.watch(currentLocationProvider.future);
   final reverseGeocode = ref.watch(reverseGeocodeProvider);
   final result = await reverseGeocode(

@@ -20,7 +20,10 @@ void main() {
     longitude: -2.9916,
   );
 
-  Widget buildSubject(CitySearchState state, {ValueChanged<CitySuggestion>? onSelected}) {
+  Widget buildSubject(
+    CitySearchState state, {
+    ValueChanged<CitySuggestion>? onSelected,
+  }) {
     return MaterialApp(
       home: Scaffold(
         body: CitySuggestionsList(
@@ -57,7 +60,9 @@ void main() {
     expect(find.text('No connection'), findsOneWidget);
   });
 
-  testWidgets('shows an empty-results message when nothing matches', (tester) async {
+  testWidgets('shows an empty-results message when nothing matches', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       buildSubject(const CitySearchState(query: 'Zzznotacity')),
     );

@@ -30,7 +30,9 @@ void main() {
   });
 
   test('GetFavorites delegates to the repository', () async {
-    when(() => mockRepository.getFavorites()).thenAnswer((_) async => const Right([pune]));
+    when(
+      () => mockRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([pune]));
 
     final result = await GetFavorites(mockRepository)();
 
@@ -39,7 +41,9 @@ void main() {
   });
 
   test('AddFavorite delegates to the repository', () async {
-    when(() => mockRepository.addFavorite(pune)).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockRepository.addFavorite(pune),
+    ).thenAnswer((_) async => const Right(unit));
 
     final result = await AddFavorite(mockRepository)(pune);
 

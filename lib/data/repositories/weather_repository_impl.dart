@@ -16,7 +16,7 @@ import '../models/forecast_model.dart';
 /// [Failure]s.
 class WeatherRepositoryImpl implements WeatherRepository {
   const WeatherRepositoryImpl({required WeatherDataSource dataSource})
-      : _dataSource = dataSource;
+    : _dataSource = dataSource;
 
   final WeatherDataSource _dataSource;
 
@@ -52,9 +52,13 @@ class WeatherRepositoryImpl implements WeatherRepository {
     try {
       return Right(await body());
     } on WeatherApiException catch (error) {
-      return Left(RemoteDataFailure(error.message, statusCode: error.statusCode));
+      return Left(
+        RemoteDataFailure(error.message, statusCode: error.statusCode),
+      );
     } catch (error) {
-      return Left(DataParsingFailure('Failed to parse weather response: $error'));
+      return Left(
+        DataParsingFailure('Failed to parse weather response: $error'),
+      );
     }
   }
 }

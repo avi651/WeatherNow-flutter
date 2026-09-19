@@ -39,30 +39,24 @@ void main() {
 
   test('returns the Forecast from the repository on success', () async {
     when(
-      () => mockRepository.getForecast(
-        latitude: latitude,
-        longitude: longitude,
-      ),
+      () =>
+          mockRepository.getForecast(latitude: latitude, longitude: longitude),
     ).thenAnswer((_) async => Right(forecast));
 
     final result = await useCase(latitude: latitude, longitude: longitude);
 
     expect(result, Right(forecast));
     verify(
-      () => mockRepository.getForecast(
-        latitude: latitude,
-        longitude: longitude,
-      ),
+      () =>
+          mockRepository.getForecast(latitude: latitude, longitude: longitude),
     ).called(1);
   });
 
   test('returns the Failure from the repository on error', () async {
     const failure = DataParsingFailure('Failed to parse weather response');
     when(
-      () => mockRepository.getForecast(
-        latitude: latitude,
-        longitude: longitude,
-      ),
+      () =>
+          mockRepository.getForecast(latitude: latitude, longitude: longitude),
     ).thenAnswer((_) async => const Left(failure));
 
     final result = await useCase(latitude: latitude, longitude: longitude);

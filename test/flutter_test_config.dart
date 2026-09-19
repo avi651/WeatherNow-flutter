@@ -22,7 +22,9 @@ import 'package:weather_now_flutter/data/local/hive_boxes.dart';
 /// `favoritesRepositoryProvider`/`weatherCacheRepositoryProvider` with a
 /// mock instead of hitting these real boxes.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  final tempDir = await Directory.systemTemp.createTemp('weather_now_hive_test');
+  final tempDir = await Directory.systemTemp.createTemp(
+    'weather_now_hive_test',
+  );
   Hive.init(tempDir.path);
   await HiveBoxes.openAll();
 

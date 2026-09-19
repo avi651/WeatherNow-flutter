@@ -18,7 +18,12 @@ void main() {
     return {
       'coord': {'lon': 72.8479, 'lat': 19.0144},
       'weather': [
-        {'id': 500, 'main': weatherMain, 'description': description, 'icon': '10d'},
+        {
+          'id': 500,
+          'main': weatherMain,
+          'description': description,
+          'icon': '10d',
+        },
       ],
       'base': 'stations',
       'main': {
@@ -35,7 +40,13 @@ void main() {
       'wind': {'speed': windSpeed, 'deg': 270},
       'clouds': {'all': 4},
       'dt': dt,
-      'sys': {'type': 1, 'id': 9052, 'country': 'IN', 'sunrise': 1, 'sunset': 2},
+      'sys': {
+        'type': 1,
+        'id': 9052,
+        'country': 'IN',
+        'sunrise': 1,
+        'sunset': 2,
+      },
       'timezone': 19800,
       'id': 1275339,
       'name': 'Mumbai',
@@ -79,7 +90,10 @@ void main() {
     });
 
     test('two models parsed from identical JSON are equal', () {
-      expect(CurrentWeatherModel.fromJson(json()), CurrentWeatherModel.fromJson(json()));
+      expect(
+        CurrentWeatherModel.fromJson(json()),
+        CurrentWeatherModel.fromJson(json()),
+      );
     });
 
     test('models parsed from different JSON are not equal', () {

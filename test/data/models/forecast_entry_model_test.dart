@@ -28,7 +28,12 @@ void main() {
         'temp_kf': 2.11,
       },
       'weather': [
-        {'id': 500, 'main': weatherMain, 'description': description, 'icon': '10d'},
+        {
+          'id': 500,
+          'main': weatherMain,
+          'description': description,
+          'icon': '10d',
+        },
       ],
       'clouds': {'all': 4},
       'wind': {'speed': 3.93, 'deg': 245, 'gust': 4.54},

@@ -29,7 +29,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
             _localDataSource.getTemperatureUnit(),
           ),
           themeMode: _parseThemeMode(_localDataSource.getThemeMode()),
-          offlineDataEnabled: _localDataSource.getOfflineDataEnabled() ??
+          offlineDataEnabled:
+              _localDataSource.getOfflineDataEnabled() ??
               AppSettings.defaults.offlineDataEnabled,
         ),
       );

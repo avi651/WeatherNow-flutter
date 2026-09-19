@@ -49,7 +49,8 @@ class DioExceptionMapper {
     if (statusCode == 401 || statusCode == 403) {
       message = 'Invalid or unauthorized API key';
     } else if (statusCode == 429) {
-      message = 'Too many requests — rate limit exceeded, please try again later';
+      message =
+          'Too many requests — rate limit exceeded, please try again later';
     } else if (statusCode != null && statusCode >= 500 && statusCode <= 599) {
       message = 'The weather service is temporarily unavailable';
     } else {

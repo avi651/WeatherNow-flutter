@@ -29,21 +29,24 @@ void main() {
   );
   final fetchedAt = DateTime.utc(2026, 9, 18, 10);
 
-  test('fromEntity -> toJson -> fromJson -> toEntity round-trips every entry', () {
-    final model = CachedForecastModel.fromEntity(
-      forecast: forecast,
-      fetchedAt: fetchedAt,
-      cityName: 'Pune',
-      country: 'IN',
-    );
+  test(
+    'fromEntity -> toJson -> fromJson -> toEntity round-trips every entry',
+    () {
+      final model = CachedForecastModel.fromEntity(
+        forecast: forecast,
+        fetchedAt: fetchedAt,
+        cityName: 'Pune',
+        country: 'IN',
+      );
 
-    final restored = CachedForecastModel.fromJson(model.toJson()).toEntity();
+      final restored = CachedForecastModel.fromJson(model.toJson()).toEntity();
 
-    expect(restored.forecast, forecast);
-    expect(restored.fetchedAt, fetchedAt);
-    expect(restored.cityName, 'Pune');
-    expect(restored.country, 'IN');
-  });
+      expect(restored.forecast, forecast);
+      expect(restored.fetchedAt, fetchedAt);
+      expect(restored.cityName, 'Pune');
+      expect(restored.country, 'IN');
+    },
+  );
 
   test('round-trips an empty forecast', () {
     final model = CachedForecastModel.fromEntity(

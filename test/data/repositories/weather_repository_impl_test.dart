@@ -38,9 +38,19 @@ void main() {
     'list': [
       {
         'dt': 1789560000,
-        'main': {'temp': 25.0, 'feels_like': 24.0, 'pressure': 1010, 'humidity': 55},
+        'main': {
+          'temp': 25.0,
+          'feels_like': 24.0,
+          'pressure': 1010,
+          'humidity': 55,
+        },
         'weather': [
-          {'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10d'},
+          {
+            'id': 500,
+            'main': 'Rain',
+            'description': 'light rain',
+            'icon': '10d',
+          },
         ],
         'pop': 0.4,
       },
@@ -69,38 +79,14 @@ void main() {
       });
     });
 
-    test(
-      'returns a RemoteDataFailure carrying the status code when the '
-      'data source throws',
-      () async {
-        when(
-          () => mockApiService.getCurrentWeather(
-            latitude: latitude,
-            longitude: longitude,
-          ),
-        ).thenThrow(WeatherApiException('Not found', statusCode: 404));
-
-        final result = await repository.getCurrentWeather(
-          latitude: latitude,
-          longitude: longitude,
-        );
-
-        expect(result.isLeft(), isTrue);
-        result.fold((failure) {
-          expect(failure, isA<RemoteDataFailure>());
-          expect(failure.message, 'Not found');
-          expect((failure as RemoteDataFailure).statusCode, 404);
-        }, (_) => fail('expected Left'));
-      },
-    );
-
-    test('returns a DataParsingFailure when the response is malformed', () async {
+    test('returns a RemoteDataFailure carrying the status code when the '
+        'data source throws', () async {
       when(
         () => mockApiService.getCurrentWeather(
           latitude: latitude,
           longitude: longitude,
         ),
-      ).thenAnswer((_) async => <String, dynamic>{'unexpected': 'shape'});
+      ).thenThrow(WeatherApiException('Not found', statusCode: 404));
 
       final result = await repository.getCurrentWeather(
         latitude: latitude,
@@ -108,11 +94,35 @@ void main() {
       );
 
       expect(result.isLeft(), isTrue);
-      result.fold(
-        (failure) => expect(failure, isA<DataParsingFailure>()),
-        (_) => fail('expected Left'),
-      );
+      result.fold((failure) {
+        expect(failure, isA<RemoteDataFailure>());
+        expect(failure.message, 'Not found');
+        expect((failure as RemoteDataFailure).statusCode, 404);
+      }, (_) => fail('expected Left'));
     });
+
+    test(
+      'returns a DataParsingFailure when the response is malformed',
+      () async {
+        when(
+          () => mockApiService.getCurrentWeather(
+            latitude: latitude,
+            longitude: longitude,
+          ),
+        ).thenAnswer((_) async => <String, dynamic>{'unexpected': 'shape'});
+
+        final result = await repository.getCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+        );
+
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) => expect(failure, isA<DataParsingFailure>()),
+          (_) => fail('expected Left'),
+        );
+      },
+    );
   });
 
   group('WeatherRepositoryImpl.getForecast', () {
@@ -157,24 +167,27 @@ void main() {
       );
     });
 
-    test('returns a DataParsingFailure when the response is malformed', () async {
-      when(
-        () => mockApiService.getForecast(
+    test(
+      'returns a DataParsingFailure when the response is malformed',
+      () async {
+        when(
+          () => mockApiService.getForecast(
+            latitude: latitude,
+            longitude: longitude,
+          ),
+        ).thenAnswer((_) async => <String, dynamic>{'unexpected': 'shape'});
+
+        final result = await repository.getForecast(
           latitude: latitude,
           longitude: longitude,
-        ),
-      ).thenAnswer((_) async => <String, dynamic>{'unexpected': 'shape'});
+        );
 
-      final result = await repository.getForecast(
-        latitude: latitude,
-        longitude: longitude,
-      );
-
-      expect(result.isLeft(), isTrue);
-      result.fold(
-        (failure) => expect(failure, isA<DataParsingFailure>()),
-        (_) => fail('expected Left'),
-      );
-    });
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) => expect(failure, isA<DataParsingFailure>()),
+          (_) => fail('expected Left'),
+        );
+      },
+    );
   });
 }

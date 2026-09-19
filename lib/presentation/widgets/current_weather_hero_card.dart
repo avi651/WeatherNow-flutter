@@ -31,8 +31,7 @@ class CurrentWeatherHeroCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final unit = ref.watch(temperatureUnitProvider);
-    final sizeClass =
-        AppBreakpoints.classify(MediaQuery.sizeOf(context).width);
+    final sizeClass = AppBreakpoints.classify(MediaQuery.sizeOf(context).width);
     final padding = switch (sizeClass) {
       ScreenSizeClass.compact => AppSpacing.md,
       ScreenSizeClass.medium => AppSpacing.lg,
@@ -112,7 +111,9 @@ class CurrentWeatherHeroCard extends ConsumerWidget {
                           Padding(
                             // Indented to sit under the city name, past the
                             // icon + gap that precede it above.
-                            padding: const EdgeInsets.only(left: 18 + AppSpacing.xs),
+                            padding: const EdgeInsets.only(
+                              left: 18 + AppSpacing.xs,
+                            ),
                             child: Text(
                               country,
                               maxLines: 1,

@@ -228,34 +228,33 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the three-dot menu offers only Remove from Favorites when no '
-    'onCitySelected is given, since there is nowhere to "set as Home" to',
-    (tester) async {
-      when(
-        () => mockFavoritesRepository.getFavorites(),
-      ).thenAnswer((_) async => const Right([pune]));
-      when(
-        () => mockFavoritesRepository.removeFavorite(pune),
-      ).thenAnswer((_) async => const Right(unit));
+  testWidgets('the three-dot menu offers only Remove from Favorites when no '
+      'onCitySelected is given, since there is nowhere to "set as Home" to', (
+    tester,
+  ) async {
+    when(
+      () => mockFavoritesRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([pune]));
+    when(
+      () => mockFavoritesRepository.removeFavorite(pune),
+    ).thenAnswer((_) async => const Right(unit));
 
-      await tester.pumpWidget(buildSubject());
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Set as Home location'), findsNothing);
-      expect(find.text('Remove from Favorites'), findsOneWidget);
+    expect(find.text('Set as Home location'), findsNothing);
+    expect(find.text('Remove from Favorites'), findsOneWidget);
 
-      await tester.tap(find.text('Remove from Favorites'));
-      await tester.pump();
+    await tester.tap(find.text('Remove from Favorites'));
+    await tester.pump();
 
-      verify(() => mockFavoritesRepository.removeFavorite(pune)).called(1);
-    },
-  );
+    verify(() => mockFavoritesRepository.removeFavorite(pune)).called(1);
+  });
 
   testWidgets('shows the cached weather for a favorite when available', (
     tester,
@@ -547,16 +546,20 @@ void main() {
       expect(find.text('Settings'), findsOneWidget);
     });
 
-    testWidgets('has no back button and navigates between tabs', (tester) async {
+    testWidgets('has no back button and navigates between tabs', (
+      tester,
+    ) async {
       when(
         () => mockFavoritesRepository.getFavorites(),
       ).thenAnswer((_) async => const Right([]));
       final mockSettingsRepository = MockSettingsRepository();
       final mockLocationService = MockLocationService();
-      when(() => mockSettingsRepository.getSettings())
-          .thenAnswer((_) async => const Right(AppSettings.defaults));
-      when(() => mockLocationService.checkPermissionStatus())
-          .thenAnswer((_) async => LocationPermissionStatus.granted);
+      when(
+        () => mockSettingsRepository.getSettings(),
+      ).thenAnswer((_) async => const Right(AppSettings.defaults));
+      when(
+        () => mockLocationService.checkPermissionStatus(),
+      ).thenAnswer((_) async => LocationPermissionStatus.granted);
 
       await tester.pumpWidget(
         ProviderScope(

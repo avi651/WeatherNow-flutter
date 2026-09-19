@@ -10,5 +10,5 @@ import '../../di/providers.dart';
 /// since the OS can change this outside the app.
 final locationPermissionStatusProvider =
     FutureProvider<LocationPermissionStatus>((ref) {
-  return ref.watch(locationServiceProvider).checkPermissionStatus();
-});
+      return ref.watch(locationServiceProvider).checkPermissionStatus();
+    });

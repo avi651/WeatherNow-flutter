@@ -55,17 +55,18 @@ class ForecastEntry {
 
   @override
   int get hashCode => Object.hash(
-        forecastFor,
-        temperatureCelsius,
-        feelsLikeCelsius,
-        humidityPercent,
-        condition,
-        description,
-        precipitationProbability,
-      );
+    forecastFor,
+    temperatureCelsius,
+    feelsLikeCelsius,
+    humidityPercent,
+    condition,
+    description,
+    precipitationProbability,
+  );
 
   @override
-  String toString() => 'ForecastEntry('
+  String toString() =>
+      'ForecastEntry('
       'forecastFor: $forecastFor, '
       'temperatureCelsius: $temperatureCelsius, '
       'condition: $condition)';

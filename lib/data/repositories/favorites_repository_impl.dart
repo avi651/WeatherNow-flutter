@@ -21,11 +21,12 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
   @override
   Future<Either<Failure, List<CitySuggestion>>> getFavorites() async {
     try {
-      final cities = _localDataSource
-          .getAll()
-          .map((json) => CitySuggestionModel.fromJson(json).toEntity())
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
+      final cities =
+          _localDataSource
+              .getAll()
+              .map((json) => CitySuggestionModel.fromJson(json).toEntity())
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
 
       return Right(cities);
     } catch (error) {
@@ -36,7 +37,10 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
   @override
   Future<Either<Failure, Unit>> addFavorite(CitySuggestion city) async {
     try {
-      await _localDataSource.put(_keyFor(city), CitySuggestionModel.fromEntity(city).toJson());
+      await _localDataSource.put(
+        _keyFor(city),
+        CitySuggestionModel.fromEntity(city).toJson(),
+      );
       return const Right(unit);
     } catch (error) {
       return Left(CacheFailure('Failed to save favorite: $error'));
@@ -54,6 +58,9 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
   }
 
   String _keyFor(CitySuggestion city) {
-    return LocationCacheKey.of(latitude: city.latitude, longitude: city.longitude);
+    return LocationCacheKey.of(
+      latitude: city.latitude,
+      longitude: city.longitude,
+    );
   }
 }

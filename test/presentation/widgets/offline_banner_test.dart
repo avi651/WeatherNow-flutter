@@ -3,12 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:weather_now_flutter/presentation/widgets/offline_banner.dart';
 
 void main() {
-  testWidgets('shows an offline message and the formatted cached time',
-      (tester) async {
+  testWidgets('shows an offline message and the formatted cached time', (
+    tester,
+  ) async {
     final fetchedAt = DateTime(2026, 9, 18, 15, 45);
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: OfflineBanner(fetchedAt: fetchedAt))),
+      MaterialApp(
+        home: Scaffold(body: OfflineBanner(fetchedAt: fetchedAt)),
+      ),
     );
 
     expect(find.byIcon(Icons.cloud_off), findsOneWidget);

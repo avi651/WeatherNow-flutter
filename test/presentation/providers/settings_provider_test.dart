@@ -26,12 +26,15 @@ void main() {
 
   setUp(() {
     mockRepository = MockSettingsRepository();
-    when(() => mockRepository.saveTemperatureUnit(any()))
-        .thenAnswer((_) async => const Right(unit));
-    when(() => mockRepository.saveThemeMode(any()))
-        .thenAnswer((_) async => const Right(unit));
-    when(() => mockRepository.saveOfflineDataEnabled(any()))
-        .thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockRepository.saveTemperatureUnit(any()),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockRepository.saveThemeMode(any()),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockRepository.saveOfflineDataEnabled(any()),
+    ).thenAnswer((_) async => const Right(unit));
   });
 
   ProviderContainer buildContainer() {
@@ -48,7 +51,9 @@ void main() {
       themeMode: AppThemeMode.dark,
       offlineDataEnabled: false,
     );
-    when(() => mockRepository.getSettings()).thenAnswer((_) async => const Right(saved));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(saved));
 
     final container = buildContainer();
 
@@ -57,8 +62,9 @@ void main() {
 
   test('falls back to defaults when loading fails, rather than surfacing '
       'an error', () async {
-    when(() => mockRepository.getSettings())
-        .thenAnswer((_) async => const Left(CacheFailure('disk error')));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Left(CacheFailure('disk error')));
 
     final container = buildContainer();
 
@@ -66,27 +72,37 @@ void main() {
     expect(container.read(settingsProvider).hasError, isFalse);
   });
 
-  test('setTemperatureUnit updates state optimistically and persists it',
-      () async {
-    when(() => mockRepository.getSettings())
-        .thenAnswer((_) async => const Right(AppSettings.defaults));
+  test(
+    'setTemperatureUnit updates state optimistically and persists it',
+    () async {
+      when(
+        () => mockRepository.getSettings(),
+      ).thenAnswer((_) async => const Right(AppSettings.defaults));
 
-    final container = buildContainer();
-    await container.read(settingsProvider.future);
+      final container = buildContainer();
+      await container.read(settingsProvider.future);
 
-    await container
-        .read(settingsProvider.notifier)
-        .setTemperatureUnit(TemperatureUnit.fahrenheit);
+      await container
+          .read(settingsProvider.notifier)
+          .setTemperatureUnit(TemperatureUnit.fahrenheit);
 
-    expect(container.read(settingsProvider).value!.temperatureUnit, TemperatureUnit.fahrenheit);
-    verify(() => mockRepository.saveTemperatureUnit(TemperatureUnit.fahrenheit)).called(1);
-  });
+      expect(
+        container.read(settingsProvider).value!.temperatureUnit,
+        TemperatureUnit.fahrenheit,
+      );
+      verify(
+        () => mockRepository.saveTemperatureUnit(TemperatureUnit.fahrenheit),
+      ).called(1);
+    },
+  );
 
   test('setTemperatureUnit rolls back when persisting fails', () async {
-    when(() => mockRepository.getSettings())
-        .thenAnswer((_) async => const Right(AppSettings.defaults));
-    when(() => mockRepository.saveTemperatureUnit(TemperatureUnit.fahrenheit))
-        .thenAnswer((_) async => const Left(CacheFailure('disk full')));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(AppSettings.defaults));
+    when(
+      () => mockRepository.saveTemperatureUnit(TemperatureUnit.fahrenheit),
+    ).thenAnswer((_) async => const Left(CacheFailure('disk full')));
 
     final container = buildContainer();
     await container.read(settingsProvider.future);
@@ -102,26 +118,35 @@ void main() {
   });
 
   test('setThemeMode updates state and persists it', () async {
-    when(() => mockRepository.getSettings())
-        .thenAnswer((_) async => const Right(AppSettings.defaults));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(AppSettings.defaults));
 
     final container = buildContainer();
     await container.read(settingsProvider.future);
 
-    await container.read(settingsProvider.notifier).setThemeMode(AppThemeMode.dark);
+    await container
+        .read(settingsProvider.notifier)
+        .setThemeMode(AppThemeMode.dark);
 
-    expect(container.read(settingsProvider).value!.themeMode, AppThemeMode.dark);
+    expect(
+      container.read(settingsProvider).value!.themeMode,
+      AppThemeMode.dark,
+    );
     verify(() => mockRepository.saveThemeMode(AppThemeMode.dark)).called(1);
   });
 
   test('setOfflineDataEnabled updates state and persists it', () async {
-    when(() => mockRepository.getSettings())
-        .thenAnswer((_) async => const Right(AppSettings.defaults));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(AppSettings.defaults));
 
     final container = buildContainer();
     await container.read(settingsProvider.future);
 
-    await container.read(settingsProvider.notifier).setOfflineDataEnabled(false);
+    await container
+        .read(settingsProvider.notifier)
+        .setOfflineDataEnabled(false);
 
     expect(container.read(settingsProvider).value!.offlineDataEnabled, isFalse);
     verify(() => mockRepository.saveOfflineDataEnabled(false)).called(1);
@@ -133,7 +158,9 @@ void main() {
       themeMode: AppThemeMode.system,
       offlineDataEnabled: true,
     );
-    when(() => mockRepository.getSettings()).thenAnswer((_) async => const Right(saved));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(saved));
 
     final container = buildContainer();
     await container.read(settingsProvider.future);
@@ -147,7 +174,9 @@ void main() {
       themeMode: AppThemeMode.system,
       offlineDataEnabled: false,
     );
-    when(() => mockRepository.getSettings()).thenAnswer((_) async => const Right(saved));
+    when(
+      () => mockRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(saved));
 
     final container = buildContainer();
     await container.read(settingsProvider.future);
@@ -155,21 +184,24 @@ void main() {
     expect(container.read(offlineDataEnabledProvider), isFalse);
   });
 
-  test('themeModeProvider maps each AppThemeMode onto Flutter\'s ThemeMode',
-      () async {
-    for (final entry in {
-      AppThemeMode.system: ThemeMode.system,
-      AppThemeMode.light: ThemeMode.light,
-      AppThemeMode.dark: ThemeMode.dark,
-    }.entries) {
-      when(() => mockRepository.getSettings()).thenAnswer(
-        (_) async => Right(AppSettings.defaults.copyWith(themeMode: entry.key)),
-      );
+  test(
+    'themeModeProvider maps each AppThemeMode onto Flutter\'s ThemeMode',
+    () async {
+      for (final entry in {
+        AppThemeMode.system: ThemeMode.system,
+        AppThemeMode.light: ThemeMode.light,
+        AppThemeMode.dark: ThemeMode.dark,
+      }.entries) {
+        when(() => mockRepository.getSettings()).thenAnswer(
+          (_) async =>
+              Right(AppSettings.defaults.copyWith(themeMode: entry.key)),
+        );
 
-      final container = buildContainer();
-      await container.read(settingsProvider.future);
+        final container = buildContainer();
+        await container.read(settingsProvider.future);
 
-      expect(container.read(themeModeProvider), entry.value);
-    }
-  });
+        expect(container.read(themeModeProvider), entry.value);
+      }
+    },
+  );
 }

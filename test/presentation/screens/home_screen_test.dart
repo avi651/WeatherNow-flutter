@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../utils/location_test_overrides.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
 import 'package:weather_now_flutter/core/error/failures.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
@@ -199,9 +201,10 @@ void main() {
     ).thenAnswer((_) async => Right(forecast));
   }
 
-  Widget buildSubject() {
+  Widget buildSubject({CitySuggestion? startupCity}) {
     return ProviderScope(
       overrides: [
+        ...locationTestOverrides(lastSearchedCity: startupCity),
         weatherRepositoryProvider.overrideWithValue(mockRepository),
         locationServiceProvider.overrideWithValue(mockLocationService),
         geocodingRepositoryProvider.overrideWithValue(mockGeocodingRepository),
@@ -214,6 +217,58 @@ void main() {
       child: const MaterialApp(home: HomeScreen()),
     );
   }
+
+  group('startup', () {
+    testWidgets(
+      'without a last searched city, picks up the device location and '
+      'shows its weather',
+      (tester) async {
+        stubWeatherSuccess();
+
+        await tester.pumpWidget(buildSubject());
+        await tester.pumpAndSettle();
+
+        verify(() => mockLocationService.getCurrentLocation()).called(1);
+        expect(find.text('Partly Cloudy'), findsOneWidget);
+      },
+    );
+
+    testWidgets('a saved city is restored: startup skips the device location', (
+      tester,
+    ) async {
+      stubWeatherSuccess();
+
+      await tester.pumpWidget(buildSubject(startupCity: london));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Partly Cloudy'), findsOneWidget);
+      verifyNever(() => mockLocationService.getCurrentLocation());
+    });
+
+    testWidgets(
+      'on iOS, a location failure ends in a usable state with the search '
+      'bar and Retry, not an endless spinner',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        when(() => mockLocationService.getCurrentLocation()).thenAnswer(
+          (_) async => const Left(
+            LocationUnavailableFailure(
+              'Timed out while finding your location.',
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(buildSubject());
+        await tester.pumpAndSettle();
+
+        expect(find.byType(WeatherLoadingView), findsNothing);
+        expect(find.byKey(const Key('locationFailedState')), findsOneWidget);
+        expect(find.byKey(const Key('useMyLocationButton')), findsOneWidget);
+        expect(find.text('Retry'), findsOneWidget);
+        debugDefaultTargetPlatformOverride = null;
+      },
+    );
+  });
 
   testWidgets('shows a loading indicator, then the weather on success', (
     tester,

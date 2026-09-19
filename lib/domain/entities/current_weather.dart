@@ -56,18 +56,19 @@ class CurrentWeather {
 
   @override
   int get hashCode => Object.hash(
-        temperatureCelsius,
-        feelsLikeCelsius,
-        humidityPercent,
-        pressureHpa,
-        windSpeedMetersPerSecond,
-        condition,
-        description,
-        observedAt,
-      );
+    temperatureCelsius,
+    feelsLikeCelsius,
+    humidityPercent,
+    pressureHpa,
+    windSpeedMetersPerSecond,
+    condition,
+    description,
+    observedAt,
+  );
 
   @override
-  String toString() => 'CurrentWeather('
+  String toString() =>
+      'CurrentWeather('
       'temperatureCelsius: $temperatureCelsius, '
       'condition: $condition, '
       'observedAt: $observedAt)';

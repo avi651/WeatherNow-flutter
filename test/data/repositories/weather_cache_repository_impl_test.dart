@@ -81,69 +81,105 @@ void main() {
 
   group('current weather', () {
     test('getCurrentWeather returns null when nothing is cached', () async {
-      final result = await repository.getCurrentWeather(latitude: latitude, longitude: longitude);
-
-      result.fold((_) => fail('expected Right'), (cached) => expect(cached, isNull));
-    });
-
-    test('saveCurrentWeather then getCurrentWeather round-trips the snapshot', () async {
-      await repository.saveCurrentWeather(
+      final result = await repository.getCurrentWeather(
         latitude: latitude,
         longitude: longitude,
-        weather: weather,
-        fetchedAt: fetchedAt,
-        cityName: 'Pune',
-        country: 'IN',
       );
 
-      final result = await repository.getCurrentWeather(latitude: latitude, longitude: longitude);
-
-      result.fold((_) => fail('expected Right'), (cached) {
-        expect(cached, isNotNull);
-        expect(cached!.weather, weather);
-        expect(cached.fetchedAt, fetchedAt);
-        expect(cached.cityName, 'Pune');
-        expect(cached.country, 'IN');
-      });
-    });
-
-    test('a later failed save does not touch what was already cached', () async {
-      await repository.saveCurrentWeather(
-        latitude: latitude,
-        longitude: longitude,
-        weather: weather,
-        fetchedAt: fetchedAt,
+      result.fold(
+        (_) => fail('expected Right'),
+        (cached) => expect(cached, isNull),
       );
-
-      dataSource.failWith = Exception('disk full');
-      final saveResult = await repository.saveCurrentWeather(
-        latitude: latitude,
-        longitude: longitude,
-        weather: weather,
-        fetchedAt: DateTime.now(),
-      );
-      expect(saveResult.isLeft(), isTrue);
-
-      dataSource.failWith = null;
-      final result = await repository.getCurrentWeather(latitude: latitude, longitude: longitude);
-      result.fold((_) => fail('expected Right'), (cached) => expect(cached!.weather, weather));
     });
 
-    test('getCurrentWeather returns a CacheFailure when the data source throws', () async {
-      dataSource.failWith = Exception('corrupted entry');
+    test(
+      'saveCurrentWeather then getCurrentWeather round-trips the snapshot',
+      () async {
+        await repository.saveCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+          weather: weather,
+          fetchedAt: fetchedAt,
+          cityName: 'Pune',
+          country: 'IN',
+        );
 
-      final result = await repository.getCurrentWeather(latitude: latitude, longitude: longitude);
+        final result = await repository.getCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+        );
 
-      expect(result.isLeft(), isTrue);
-      result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-    });
+        result.fold((_) => fail('expected Right'), (cached) {
+          expect(cached, isNotNull);
+          expect(cached!.weather, weather);
+          expect(cached.fetchedAt, fetchedAt);
+          expect(cached.cityName, 'Pune');
+          expect(cached.country, 'IN');
+        });
+      },
+    );
+
+    test(
+      'a later failed save does not touch what was already cached',
+      () async {
+        await repository.saveCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+          weather: weather,
+          fetchedAt: fetchedAt,
+        );
+
+        dataSource.failWith = Exception('disk full');
+        final saveResult = await repository.saveCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+          weather: weather,
+          fetchedAt: DateTime.now(),
+        );
+        expect(saveResult.isLeft(), isTrue);
+
+        dataSource.failWith = null;
+        final result = await repository.getCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+        );
+        result.fold(
+          (_) => fail('expected Right'),
+          (cached) => expect(cached!.weather, weather),
+        );
+      },
+    );
+
+    test(
+      'getCurrentWeather returns a CacheFailure when the data source throws',
+      () async {
+        dataSource.failWith = Exception('corrupted entry');
+
+        final result = await repository.getCurrentWeather(
+          latitude: latitude,
+          longitude: longitude,
+        );
+
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) => expect(failure, isA<CacheFailure>()),
+          (_) => fail('expected Left'),
+        );
+      },
+    );
   });
 
   group('forecast', () {
     test('getForecast returns null when nothing is cached', () async {
-      final result = await repository.getForecast(latitude: latitude, longitude: longitude);
+      final result = await repository.getForecast(
+        latitude: latitude,
+        longitude: longitude,
+      );
 
-      result.fold((_) => fail('expected Right'), (cached) => expect(cached, isNull));
+      result.fold(
+        (_) => fail('expected Right'),
+        (cached) => expect(cached, isNull),
+      );
     });
 
     test('saveForecast then getForecast round-trips the snapshot', () async {
@@ -156,7 +192,10 @@ void main() {
         country: 'IN',
       );
 
-      final result = await repository.getForecast(latitude: latitude, longitude: longitude);
+      final result = await repository.getForecast(
+        latitude: latitude,
+        longitude: longitude,
+      );
 
       result.fold((_) => fail('expected Right'), (cached) {
         expect(cached, isNotNull);
@@ -165,14 +204,23 @@ void main() {
       });
     });
 
-    test('getForecast returns a CacheFailure when the data source throws', () async {
-      dataSource.failWith = Exception('corrupted entry');
+    test(
+      'getForecast returns a CacheFailure when the data source throws',
+      () async {
+        dataSource.failWith = Exception('corrupted entry');
 
-      final result = await repository.getForecast(latitude: latitude, longitude: longitude);
+        final result = await repository.getForecast(
+          latitude: latitude,
+          longitude: longitude,
+        );
 
-      expect(result.isLeft(), isTrue);
-      result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-    });
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) => expect(failure, isA<CacheFailure>()),
+          (_) => fail('expected Left'),
+        );
+      },
+    );
   });
 
   test('different locations are cached independently', () async {
@@ -183,8 +231,14 @@ void main() {
       fetchedAt: fetchedAt,
     );
 
-    final result = await repository.getCurrentWeather(latitude: 51.5072, longitude: -0.1276);
+    final result = await repository.getCurrentWeather(
+      latitude: 51.5072,
+      longitude: -0.1276,
+    );
 
-    result.fold((_) => fail('expected Right'), (cached) => expect(cached, isNull));
+    result.fold(
+      (_) => fail('expected Right'),
+      (cached) => expect(cached, isNull),
+    );
   });
 }

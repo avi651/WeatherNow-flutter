@@ -39,7 +39,9 @@ void main() {
 
   Widget buildSubject() {
     return ProviderScope(
-      overrides: [geocodingRepositoryProvider.overrideWithValue(mockRepository)],
+      overrides: [
+        geocodingRepositoryProvider.overrideWithValue(mockRepository),
+      ],
       child: MaterialApp(
         home: Scaffold(
           body: SearchInputField(
@@ -58,41 +60,56 @@ void main() {
     expect(find.text('Search Your City'), findsOneWidget);
   });
 
-  testWidgets('hides the placeholder and shows a clear button once text is entered',
-      (tester) async {
-    when(
-      () => mockRepository.searchCities(query: 'Lon'),
-    ).thenAnswer((_) async => const Right(results));
+  testWidgets(
+    'hides the placeholder and shows a clear button once text is entered',
+    (tester) async {
+      when(
+        () => mockRepository.searchCities(query: 'Lon'),
+      ).thenAnswer((_) async => const Right(results));
 
-    await tester.pumpWidget(buildSubject());
-    await tester.enterText(find.byKey(const Key('citySearchTextField')), 'Lon');
-    await tester.pump();
+      await tester.pumpWidget(buildSubject());
+      await tester.enterText(
+        find.byKey(const Key('citySearchTextField')),
+        'Lon',
+      );
+      await tester.pump();
 
-    expect(find.text('Search Your City'), findsNothing);
-    expect(find.byKey(const Key('citySearchClearButton')), findsOneWidget);
-  });
+      expect(find.text('Search Your City'), findsNothing);
+      expect(find.byKey(const Key('citySearchClearButton')), findsOneWidget);
+    },
+  );
 
-  testWidgets('debounces search: does not search before the debounce interval elapses',
-      (tester) async {
-    when(
-      () => mockRepository.searchCities(query: 'Lon'),
-    ).thenAnswer((_) async => const Right(results));
+  testWidgets(
+    'debounces search: does not search before the debounce interval elapses',
+    (tester) async {
+      when(
+        () => mockRepository.searchCities(query: 'Lon'),
+      ).thenAnswer((_) async => const Right(results));
 
-    await tester.pumpWidget(buildSubject());
-    await tester.enterText(find.byKey(const Key('citySearchTextField')), 'Lon');
-    await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpWidget(buildSubject());
+      await tester.enterText(
+        find.byKey(const Key('citySearchTextField')),
+        'Lon',
+      );
+      await tester.pump(const Duration(milliseconds: 200));
 
-    verifyNever(() => mockRepository.searchCities(query: any(named: 'query')));
-  });
+      verifyNever(
+        () => mockRepository.searchCities(query: any(named: 'query')),
+      );
+    },
+  );
 
-  testWidgets('debounces search: searches once the debounce interval elapses',
-      (tester) async {
+  testWidgets('debounces search: searches once the debounce interval elapses', (
+    tester,
+  ) async {
     when(
       () => mockRepository.searchCities(query: 'Lon'),
     ).thenAnswer((_) async => const Right(results));
 
     final container = ProviderContainer(
-      overrides: [geocodingRepositoryProvider.overrideWithValue(mockRepository)],
+      overrides: [
+        geocodingRepositoryProvider.overrideWithValue(mockRepository),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -119,7 +136,9 @@ void main() {
     expect(container.read(citySearchProvider).results, results);
   });
 
-  testWidgets('cancels the previous debounce timer on each new keystroke', (tester) async {
+  testWidgets('cancels the previous debounce timer on each new keystroke', (
+    tester,
+  ) async {
     when(
       () => mockRepository.searchCities(query: any(named: 'query')),
     ).thenAnswer((_) async => const Right(results));
@@ -139,14 +158,17 @@ void main() {
     verify(() => mockRepository.searchCities(query: 'Lon')).called(1);
   });
 
-  testWidgets('tapping clear empties the field and clears search results',
-      (tester) async {
+  testWidgets('tapping clear empties the field and clears search results', (
+    tester,
+  ) async {
     when(
       () => mockRepository.searchCities(query: 'Lon'),
     ).thenAnswer((_) async => const Right(results));
 
     final container = ProviderContainer(
-      overrides: [geocodingRepositoryProvider.overrideWithValue(mockRepository)],
+      overrides: [
+        geocodingRepositoryProvider.overrideWithValue(mockRepository),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -178,36 +200,43 @@ void main() {
     expect(find.text('Search Your City'), findsOneWidget);
   });
 
-  testWidgets('submitting the field searches immediately without waiting for debounce',
-      (tester) async {
-    when(
-      () => mockRepository.searchCities(query: 'Lon'),
-    ).thenAnswer((_) async => const Right(results));
+  testWidgets(
+    'submitting the field searches immediately without waiting for debounce',
+    (tester) async {
+      when(
+        () => mockRepository.searchCities(query: 'Lon'),
+      ).thenAnswer((_) async => const Right(results));
 
-    final container = ProviderContainer(
-      overrides: [geocodingRepositoryProvider.overrideWithValue(mockRepository)],
-    );
-    addTearDown(container.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          geocodingRepositoryProvider.overrideWithValue(mockRepository),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: Scaffold(
-            body: SearchInputField(
-              controller: controller,
-              focusNode: focusNode,
-              debounceDuration: const Duration(milliseconds: 400),
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: SearchInputField(
+                controller: controller,
+                focusNode: focusNode,
+                debounceDuration: const Duration(milliseconds: 400),
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.enterText(find.byKey(const Key('citySearchTextField')), 'Lon');
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('citySearchTextField')),
+        'Lon',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
 
-    verify(() => mockRepository.searchCities(query: 'Lon')).called(1);
-  });
+      verify(() => mockRepository.searchCities(query: 'Lon')).called(1);
+    },
+  );
 }

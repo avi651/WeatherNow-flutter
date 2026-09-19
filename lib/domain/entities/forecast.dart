@@ -3,7 +3,7 @@ import 'forecast_entry.dart';
 /// An ordered collection of forecast slots for a location.
 class Forecast {
   Forecast({required List<ForecastEntry> entries})
-      : entries = List.unmodifiable(entries);
+    : entries = List.unmodifiable(entries);
 
   final List<ForecastEntry> entries;
 

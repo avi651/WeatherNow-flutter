@@ -10,7 +10,8 @@ import 'settings_provider.dart';
 /// for [App] to pass straight to `MaterialApp.themeMode`.
 final themeModeProvider = Provider<ThemeMode>((ref) {
   final mode =
-      ref.watch(settingsProvider).value?.themeMode ?? AppSettings.defaults.themeMode;
+      ref.watch(settingsProvider).value?.themeMode ??
+      AppSettings.defaults.themeMode;
 
   return switch (mode) {
     AppThemeMode.system => ThemeMode.system,

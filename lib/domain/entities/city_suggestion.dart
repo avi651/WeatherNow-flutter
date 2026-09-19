@@ -44,6 +44,7 @@ class CitySuggestion {
   int get hashCode => Object.hash(name, state, country, latitude, longitude);
 
   @override
-  String toString() => 'CitySuggestion(displayLabel: $displayLabel, '
+  String toString() =>
+      'CitySuggestion(displayLabel: $displayLabel, '
       'latitude: $latitude, longitude: $longitude)';
 }

@@ -20,5 +20,6 @@ class DeviceLocation {
   int get hashCode => Object.hash(latitude, longitude);
 
   @override
-  String toString() => 'DeviceLocation(latitude: $latitude, longitude: $longitude)';
+  String toString() =>
+      'DeviceLocation(latitude: $latitude, longitude: $longitude)';
 }

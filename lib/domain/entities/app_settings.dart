@@ -50,14 +50,12 @@ class AppSettings {
   }
 
   @override
-  int get hashCode => Object.hash(
-        temperatureUnit,
-        themeMode,
-        offlineDataEnabled,
-      );
+  int get hashCode =>
+      Object.hash(temperatureUnit, themeMode, offlineDataEnabled);
 
   @override
-  String toString() => 'AppSettings('
+  String toString() =>
+      'AppSettings('
       'temperatureUnit: $temperatureUnit, '
       'themeMode: $themeMode, '
       'offlineDataEnabled: $offlineDataEnabled)';

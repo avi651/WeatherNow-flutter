@@ -66,7 +66,9 @@ void main() {
   });
 
   test('CitySuggestionModel.toEntity maps every field across', () {
-    final entity = CitySuggestionModel.fromJson(json(state: 'Maharashtra')).toEntity();
+    final entity = CitySuggestionModel.fromJson(
+      json(state: 'Maharashtra'),
+    ).toEntity();
 
     expect(entity.name, 'Mumbai');
     expect(entity.state, 'Maharashtra');

@@ -122,7 +122,10 @@ class FavoriteCityTile extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            formatTemperature(cached.weather.temperatureCelsius, unit),
+                            formatTemperature(
+                              cached.weather.temperatureCelsius,
+                              unit,
+                            ),
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),

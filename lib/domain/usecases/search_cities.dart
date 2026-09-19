@@ -15,9 +15,7 @@ class SearchCities {
 
   final GeocodingRepository _repository;
 
-  Future<Either<Failure, List<CitySuggestion>>> call({
-    required String query,
-  }) {
+  Future<Either<Failure, List<CitySuggestion>>> call({required String query}) {
     final trimmed = query.trim();
 
     if (trimmed.isEmpty) {

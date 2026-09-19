@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -20,6 +22,8 @@ import 'location_service.dart';
 class GeolocatorLocationService implements LocationService {
   const GeolocatorLocationService();
 
+  static const positionTimeout = Duration(seconds: 15);
+
   @override
   Future<Either<Failure, DeviceLocation>> getCurrentLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -36,9 +40,7 @@ class GeolocatorLocationService implements LocationService {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         return const Left(
-          LocationPermissionDeniedFailure(
-            'Location permission was denied.',
-          ),
+          LocationPermissionDeniedFailure('Location permission was denied.'),
         );
       }
     }
@@ -52,15 +54,33 @@ class GeolocatorLocationService implements LocationService {
     }
 
     try {
+      // Both limits matter: `timeLimit` is honored by the platform
+      // plugins, while `.timeout` guarantees we stop waiting even when a
+      // platform never reports (e.g. iOS Simulator with no location set).
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: positionTimeout,
+        ),
+      ).timeout(positionTimeout);
       return Right(
-        DeviceLocation(latitude: position.latitude, longitude: position.longitude),
+        DeviceLocation(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        ),
+      );
+    } on TimeoutException {
+      return const Left(
+        LocationUnavailableFailure(
+          'Timed out while finding your location. Make sure location is '
+          'available on this device, or search for a city instead.',
+        ),
       );
     } catch (error) {
       return Left(
-        LocationUnavailableFailure('Could not determine current location: $error'),
+        LocationUnavailableFailure(
+          'Could not determine current location: $error',
+        ),
       );
     }
   }
@@ -73,12 +93,11 @@ class GeolocatorLocationService implements LocationService {
     final permission = await Geolocator.checkPermission();
     return switch (permission) {
       LocationPermission.always ||
-      LocationPermission.whileInUse =>
-        LocationPermissionStatus.granted,
-      LocationPermission.deniedForever => LocationPermissionStatus.deniedForever,
+      LocationPermission.whileInUse => LocationPermissionStatus.granted,
+      LocationPermission.deniedForever =>
+        LocationPermissionStatus.deniedForever,
       LocationPermission.denied ||
-      LocationPermission.unableToDetermine =>
-        LocationPermissionStatus.denied,
+      LocationPermission.unableToDetermine => LocationPermissionStatus.denied,
     };
   }
 
@@ -94,12 +113,11 @@ class GeolocatorLocationService implements LocationService {
 
     return switch (permission) {
       LocationPermission.always ||
-      LocationPermission.whileInUse =>
-        LocationPermissionStatus.granted,
-      LocationPermission.deniedForever => LocationPermissionStatus.deniedForever,
+      LocationPermission.whileInUse => LocationPermissionStatus.granted,
+      LocationPermission.deniedForever =>
+        LocationPermissionStatus.deniedForever,
       LocationPermission.denied ||
-      LocationPermission.unableToDetermine =>
-        LocationPermissionStatus.denied,
+      LocationPermission.unableToDetermine => LocationPermissionStatus.denied,
     };
   }
 

@@ -33,7 +33,9 @@ void main() {
 
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
-      overrides: [favoritesRepositoryProvider.overrideWithValue(mockRepository)],
+      overrides: [
+        favoritesRepositoryProvider.overrideWithValue(mockRepository),
+      ],
     );
     addTearDown(container.dispose);
     return container;
@@ -45,8 +47,12 @@ void main() {
 
   setUp(() {
     mockRepository = MockFavoritesRepository();
-    when(() => mockRepository.getFavorites()).thenAnswer((_) async => const Right([]));
-    when(() => mockRepository.addFavorite(any())).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([]));
+    when(
+      () => mockRepository.addFavorite(any()),
+    ).thenAnswer((_) async => const Right(unit));
     when(
       () => mockRepository.removeFavorite(any()),
     ).thenAnswer((_) async => const Right(unit));
@@ -62,30 +68,27 @@ void main() {
     expect(await container.read(favoritesProvider.future), [pune, mumbai]);
   });
 
-  test(
-    'surfaces a load failure as an error, without crashing, so the '
-    'favorites screen can show a retry option',
-    () async {
-      when(
-        () => mockRepository.getFavorites(),
-      ).thenAnswer((_) async => const Left(CacheFailure('boom')));
+  test('surfaces a load failure as an error, without crashing, so the '
+      'favorites screen can show a retry option', () async {
+    when(
+      () => mockRepository.getFavorites(),
+    ).thenAnswer((_) async => const Left(CacheFailure('boom')));
 
-      final container = buildContainer();
+    final container = buildContainer();
 
-      // AsyncNotifier.future rethrows a build failure — same convention as
-      // HomeWeatherNotifier/HomeForecastNotifier — so this doesn't resolve
-      // to a value; the failure surfaces as the notifier's AsyncError state
-      // instead of throwing uncaught, which is what lets
-      // FavoritesScreen.build's `.when(error: ...)` show a retry view
-      // rather than the app crashing.
-      await expectLater(
-        container.read(favoritesProvider.future),
-        throwsA(isA<StateError>()),
-      );
+    // AsyncNotifier.future rethrows a build failure — same convention as
+    // HomeWeatherNotifier/HomeForecastNotifier — so this doesn't resolve
+    // to a value; the failure surfaces as the notifier's AsyncError state
+    // instead of throwing uncaught, which is what lets
+    // FavoritesScreen.build's `.when(error: ...)` show a retry view
+    // rather than the app crashing.
+    await expectLater(
+      container.read(favoritesProvider.future),
+      throwsA(isA<StateError>()),
+    );
 
-      expect(container.read(favoritesProvider).hasError, isTrue);
-    },
-  );
+    expect(container.read(favoritesProvider).hasError, isTrue);
+  });
 
   test('add appends the city optimistically and persists it', () async {
     final container = buildContainer();
@@ -124,16 +127,19 @@ void main() {
     verify(() => mockRepository.removeFavorite(pune)).called(1);
   });
 
-  test('toggle adds when not a favorite and removes when it already is', () async {
-    final container = buildContainer();
-    await container.read(favoritesProvider.future);
+  test(
+    'toggle adds when not a favorite and removes when it already is',
+    () async {
+      final container = buildContainer();
+      await container.read(favoritesProvider.future);
 
-    await container.read(favoritesProvider.notifier).toggle(pune);
-    expect(container.read(favoritesProvider).value, [pune]);
+      await container.read(favoritesProvider.notifier).toggle(pune);
+      expect(container.read(favoritesProvider).value, [pune]);
 
-    await container.read(favoritesProvider.notifier).toggle(pune);
-    expect(container.read(favoritesProvider).value, isEmpty);
-  });
+      await container.read(favoritesProvider.notifier).toggle(pune);
+      expect(container.read(favoritesProvider).value, isEmpty);
+    },
+  );
 
   group('isFavoriteProvider', () {
     test('is false when there is no active city', () async {

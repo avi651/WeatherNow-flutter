@@ -32,11 +32,11 @@ class WeatherFreshnessNotifier extends Notifier<WeatherFreshness?> {
 /// `null` until the first fetch (fresh or cached) resolves.
 final currentWeatherFreshnessProvider =
     NotifierProvider<WeatherFreshnessNotifier, WeatherFreshness?>(
-  WeatherFreshnessNotifier.new,
-);
+      WeatherFreshnessNotifier.new,
+    );
 
 /// See [currentWeatherFreshnessProvider] — the forecast's counterpart.
 final forecastFreshnessProvider =
     NotifierProvider<WeatherFreshnessNotifier, WeatherFreshness?>(
-  WeatherFreshnessNotifier.new,
-);
+      WeatherFreshnessNotifier.new,
+    );

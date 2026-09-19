@@ -60,10 +60,15 @@ void main() {
     verify(() => mockRepository.searchCities(query: 'Lon')).called(1);
   });
 
-  test('returns an empty list without calling the repository for a blank query', () async {
-    final result = await useCase(query: '   ');
+  test(
+    'returns an empty list without calling the repository for a blank query',
+    () async {
+      final result = await useCase(query: '   ');
 
-    expect(result, const Right<Failure, List<CitySuggestion>>([]));
-    verifyNever(() => mockRepository.searchCities(query: any(named: 'query')));
-  });
+      expect(result, const Right<Failure, List<CitySuggestion>>([]));
+      verifyNever(
+        () => mockRepository.searchCities(query: any(named: 'query')),
+      );
+    },
+  );
 }

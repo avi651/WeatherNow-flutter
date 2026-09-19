@@ -5,14 +5,17 @@ import 'forecast_entry_model.dart';
 /// response, decoded just enough to build a [Forecast] domain entity.
 class ForecastModel {
   ForecastModel({required List<ForecastEntryModel> entries})
-      : entries = List.unmodifiable(entries);
+    : entries = List.unmodifiable(entries);
 
   factory ForecastModel.fromJson(Map<String, dynamic> json) {
     final list = json['list'] as List<dynamic>;
 
     return ForecastModel(
       entries: list
-          .map((entry) => ForecastEntryModel.fromJson(entry as Map<String, dynamic>))
+          .map(
+            (entry) =>
+                ForecastEntryModel.fromJson(entry as Map<String, dynamic>),
+          )
           .toList(),
     );
   }

@@ -13,15 +13,12 @@ void main() {
       expect(flags.where((flag) => flag).length, 1);
     });
 
-    test(
-      'defaults to mock with empty baseUrl/apiKey when no --dart-define is '
-      'passed',
-      () {
-        expect(AppEnvironment.environment, 'mock');
-        expect(AppEnvironment.isMock, isTrue);
-        expect(AppEnvironment.baseUrl, isEmpty);
-        expect(AppEnvironment.apiKey, isEmpty);
-      },
-    );
+    test('defaults to mock with empty baseUrl/apiKey when no --dart-define is '
+        'passed', () {
+      expect(AppEnvironment.environment, 'mock');
+      expect(AppEnvironment.isMock, isTrue);
+      expect(AppEnvironment.baseUrl, isEmpty);
+      expect(AppEnvironment.apiKey, isEmpty);
+    });
   });
 }

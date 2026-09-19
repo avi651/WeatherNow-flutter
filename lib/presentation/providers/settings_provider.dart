@@ -26,7 +26,10 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     final getSettings = ref.watch(getSettingsProvider);
     final result = await getSettings();
 
-    return result.fold((failure) => AppSettings.defaults, (settings) => settings);
+    return result.fold(
+      (failure) => AppSettings.defaults,
+      (settings) => settings,
+    );
   }
 
   Future<void> setTemperatureUnit(TemperatureUnit unit) async {

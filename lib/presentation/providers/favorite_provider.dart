@@ -58,8 +58,8 @@ class FavoritesNotifier extends AsyncNotifier<List<CitySuggestion>> {
 
 final favoritesProvider =
     AsyncNotifierProvider<FavoritesNotifier, List<CitySuggestion>>(
-  FavoritesNotifier.new,
-);
+      FavoritesNotifier.new,
+    );
 
 /// Whether [activeCityProvider]'s city is currently a favorite — `false`
 /// while favorites are still loading, on a load failure, or when there's

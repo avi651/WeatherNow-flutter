@@ -16,9 +16,7 @@ void main() {
 
   testWidgets('shows a filled star when favorite', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: FavoriteStarButton(isFavorite: true, onPressed: () {}),
-      ),
+      MaterialApp(home: FavoriteStarButton(isFavorite: true, onPressed: () {})),
     );
 
     expect(find.byIcon(Icons.star), findsOneWidget);

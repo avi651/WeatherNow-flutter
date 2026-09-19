@@ -4,9 +4,7 @@ import 'package:weather_now_flutter/presentation/widgets/weather_loading_view.da
 
 void main() {
   testWidgets('shows a progress indicator', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: WeatherLoadingView()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: WeatherLoadingView()));
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });

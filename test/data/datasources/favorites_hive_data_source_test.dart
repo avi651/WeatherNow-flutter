@@ -22,7 +22,12 @@ void main() {
   });
 
   test('put then getAll returns the saved entry', () async {
-    await dataSource.put('key1', {'name': 'Pune', 'country': 'IN', 'lat': 18.5, 'lon': 73.8});
+    await dataSource.put('key1', {
+      'name': 'Pune',
+      'country': 'IN',
+      'lat': 18.5,
+      'lon': 73.8,
+    });
 
     final all = dataSource.getAll();
     expect(all, hasLength(1));
@@ -30,8 +35,18 @@ void main() {
   });
 
   test('put with the same key overwrites the previous value', () async {
-    await dataSource.put('key1', {'name': 'Pune', 'country': 'IN', 'lat': 18.5, 'lon': 73.8});
-    await dataSource.put('key1', {'name': 'Mumbai', 'country': 'IN', 'lat': 19.0, 'lon': 72.8});
+    await dataSource.put('key1', {
+      'name': 'Pune',
+      'country': 'IN',
+      'lat': 18.5,
+      'lon': 73.8,
+    });
+    await dataSource.put('key1', {
+      'name': 'Mumbai',
+      'country': 'IN',
+      'lat': 19.0,
+      'lon': 72.8,
+    });
 
     final all = dataSource.getAll();
     expect(all, hasLength(1));
@@ -39,18 +54,33 @@ void main() {
   });
 
   test('delete removes the entry', () async {
-    await dataSource.put('key1', {'name': 'Pune', 'country': 'IN', 'lat': 18.5, 'lon': 73.8});
+    await dataSource.put('key1', {
+      'name': 'Pune',
+      'country': 'IN',
+      'lat': 18.5,
+      'lon': 73.8,
+    });
 
     await dataSource.delete('key1');
 
     expect(dataSource.getAll(), isEmpty);
   });
 
-  test('a saved entry survives a fresh data source over the same box', () async {
-    await dataSource.put('key1', {'name': 'Pune', 'country': 'IN', 'lat': 18.5, 'lon': 73.8});
+  test(
+    'a saved entry survives a fresh data source over the same box',
+    () async {
+      await dataSource.put('key1', {
+        'name': 'Pune',
+        'country': 'IN',
+        'lat': 18.5,
+        'lon': 73.8,
+      });
 
-    final restarted = HiveFavoritesDataSource(box: Hive.box(HiveBoxes.favorites));
+      final restarted = HiveFavoritesDataSource(
+        box: Hive.box(HiveBoxes.favorites),
+      );
 
-    expect(restarted.getAll(), hasLength(1));
-  });
+      expect(restarted.getAll(), hasLength(1));
+    },
+  );
 }

@@ -37,16 +37,21 @@ void main() {
     mockSettingsRepository = MockSettingsRepository();
     mockLocationService = MockLocationService();
 
-    when(() => mockSettingsRepository.getSettings())
-        .thenAnswer((_) async => const Right(AppSettings.defaults));
-    when(() => mockSettingsRepository.saveTemperatureUnit(any()))
-        .thenAnswer((_) async => const Right(unit));
-    when(() => mockSettingsRepository.saveThemeMode(any()))
-        .thenAnswer((_) async => const Right(unit));
-    when(() => mockSettingsRepository.saveOfflineDataEnabled(any()))
-        .thenAnswer((_) async => const Right(unit));
-    when(() => mockLocationService.checkPermissionStatus())
-        .thenAnswer((_) async => LocationPermissionStatus.granted);
+    when(
+      () => mockSettingsRepository.getSettings(),
+    ).thenAnswer((_) async => const Right(AppSettings.defaults));
+    when(
+      () => mockSettingsRepository.saveTemperatureUnit(any()),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockSettingsRepository.saveThemeMode(any()),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockSettingsRepository.saveOfflineDataEnabled(any()),
+    ).thenAnswer((_) async => const Right(unit));
+    when(
+      () => mockLocationService.checkPermissionStatus(),
+    ).thenAnswer((_) async => LocationPermissionStatus.granted);
   });
 
   Widget buildSubject() {
@@ -99,8 +104,11 @@ void main() {
       await tester.tap(find.text('Fahrenheit (°F)'));
       await tester.pumpAndSettle();
 
-      verify(() => mockSettingsRepository.saveTemperatureUnit(TemperatureUnit.fahrenheit))
-          .called(1);
+      verify(
+        () => mockSettingsRepository.saveTemperatureUnit(
+          TemperatureUnit.fahrenheit,
+        ),
+      ).called(1);
       final segmented = tester.widget<SegmentedButton<TemperatureUnit>>(
         find.byKey(const Key('temperatureUnitSegmented')),
       );
@@ -116,7 +124,9 @@ void main() {
       await tester.tap(find.text('Dark'));
       await tester.pumpAndSettle();
 
-      verify(() => mockSettingsRepository.saveThemeMode(AppThemeMode.dark)).called(1);
+      verify(
+        () => mockSettingsRepository.saveThemeMode(AppThemeMode.dark),
+      ).called(1);
       final segmented = tester.widget<SegmentedButton<AppThemeMode>>(
         find.byKey(const Key('themeModeSegmented')),
       );
@@ -142,7 +152,9 @@ void main() {
       await tester.tap(find.byKey(const Key('offlineDataSwitch')));
       await tester.pumpAndSettle();
 
-      verify(() => mockSettingsRepository.saveOfflineDataEnabled(false)).called(1);
+      verify(
+        () => mockSettingsRepository.saveOfflineDataEnabled(false),
+      ).called(1);
     });
   });
 
@@ -154,12 +166,15 @@ void main() {
       expect(find.text('Allowed'), findsOneWidget);
     });
 
-    testWidgets('shows a denied status and requests permission when tapped',
-        (tester) async {
-      when(() => mockLocationService.checkPermissionStatus())
-          .thenAnswer((_) async => LocationPermissionStatus.denied);
-      when(() => mockLocationService.requestPermission())
-          .thenAnswer((_) async => LocationPermissionStatus.granted);
+    testWidgets('shows a denied status and requests permission when tapped', (
+      tester,
+    ) async {
+      when(
+        () => mockLocationService.checkPermissionStatus(),
+      ).thenAnswer((_) async => LocationPermissionStatus.denied);
+      when(
+        () => mockLocationService.requestPermission(),
+      ).thenAnswer((_) async => LocationPermissionStatus.granted);
 
       await pumpSubject(tester);
       await tester.pumpAndSettle();
@@ -172,37 +187,44 @@ void main() {
       verify(() => mockLocationService.requestPermission()).called(1);
     });
 
-    testWidgets(
-      'opens the app settings screen when permanently denied',
-      (tester) async {
-        when(() => mockLocationService.checkPermissionStatus())
-            .thenAnswer((_) async => LocationPermissionStatus.deniedForever);
-        when(() => mockLocationService.openAppSettings()).thenAnswer((_) async {});
+    testWidgets('opens the app settings screen when permanently denied', (
+      tester,
+    ) async {
+      when(
+        () => mockLocationService.checkPermissionStatus(),
+      ).thenAnswer((_) async => LocationPermissionStatus.deniedForever);
+      when(
+        () => mockLocationService.openAppSettings(),
+      ).thenAnswer((_) async {});
 
-        await pumpSubject(tester);
-        await tester.pumpAndSettle();
+      await pumpSubject(tester);
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key('manageLocationPermissionButton')));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('manageLocationPermissionButton')));
+      await tester.pumpAndSettle();
 
-        verify(() => mockLocationService.openAppSettings()).called(1);
-        verifyNever(() => mockLocationService.requestPermission());
-      },
-    );
+      verify(() => mockLocationService.openAppSettings()).called(1);
+      verifyNever(() => mockLocationService.requestPermission());
+    });
 
     testWidgets(
       'opens the location-services screen when services are disabled',
       (tester) async {
-        when(() => mockLocationService.checkPermissionStatus())
-            .thenAnswer((_) async => LocationPermissionStatus.serviceDisabled);
-        when(() => mockLocationService.openLocationSettings()).thenAnswer((_) async {});
+        when(
+          () => mockLocationService.checkPermissionStatus(),
+        ).thenAnswer((_) async => LocationPermissionStatus.serviceDisabled);
+        when(
+          () => mockLocationService.openLocationSettings(),
+        ).thenAnswer((_) async {});
 
         await pumpSubject(tester);
         await tester.pumpAndSettle();
 
         expect(find.text('Location services are off'), findsOneWidget);
 
-        await tester.tap(find.byKey(const Key('manageLocationPermissionButton')));
+        await tester.tap(
+          find.byKey(const Key('manageLocationPermissionButton')),
+        );
         await tester.pumpAndSettle();
 
         verify(() => mockLocationService.openLocationSettings()).called(1);
@@ -229,7 +251,9 @@ void main() {
   });
 
   group('bottom navigation', () {
-    testWidgets('shows the bottom nav bar with Settings selected', (tester) async {
+    testWidgets('shows the bottom nav bar with Settings selected', (
+      tester,
+    ) async {
       await pumpSubject(tester);
       await tester.pumpAndSettle();
 
@@ -242,7 +266,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            settingsRepositoryProvider.overrideWithValue(mockSettingsRepository),
+            settingsRepositoryProvider.overrideWithValue(
+              mockSettingsRepository,
+            ),
             locationServiceProvider.overrideWithValue(mockLocationService),
           ],
           child: MaterialApp(
@@ -269,7 +295,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            settingsRepositoryProvider.overrideWithValue(mockSettingsRepository),
+            settingsRepositoryProvider.overrideWithValue(
+              mockSettingsRepository,
+            ),
             locationServiceProvider.overrideWithValue(mockLocationService),
           ],
           child: MaterialApp(
@@ -301,7 +329,9 @@ void main() {
   });
 
   group('responsive layout', () {
-    testWidgets('lays out without overflow on a small phone width', (tester) async {
+    testWidgets('lays out without overflow on a small phone width', (
+      tester,
+    ) async {
       await tester.binding.setSurfaceSize(const Size(320, 640));
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();

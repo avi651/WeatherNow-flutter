@@ -31,8 +31,9 @@ void main() {
     );
   }
 
-  testWidgets('shows location, temperature, condition, and feels-like',
-      (tester) async {
+  testWidgets('shows location, temperature, condition, and feels-like', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSubject());
 
     expect(find.text('Bengaluru'), findsOneWidget);
@@ -42,8 +43,9 @@ void main() {
     expect(find.textContaining('31'), findsOneWidget); // feels like
   });
 
-  testWidgets('reflects favorite state and calls onFavoriteToggle',
-      (tester) async {
+  testWidgets('reflects favorite state and calls onFavoriteToggle', (
+    tester,
+  ) async {
     var toggled = false;
     await tester.pumpWidget(buildSubject(onToggle: () => toggled = true));
 
@@ -61,8 +63,9 @@ void main() {
     expect(find.byIcon(Icons.star_border), findsNothing);
   });
 
-  testWidgets('uses more generous padding on a tablet-width screen',
-      (tester) async {
+  testWidgets('uses more generous padding on a tablet-width screen', (
+    tester,
+  ) async {
     // `tester.binding.setSurfaceSize` doesn't reliably propagate to
     // `MediaQuery` on this Flutter version — `tester.view.physicalSize` is
     // the framework's own recommended replacement and does.
@@ -72,21 +75,30 @@ void main() {
 
     tester.view.physicalSize = const Size(320, 700);
     await tester.pumpWidget(buildSubject());
-    final compactPadding = tester
-        .widget<Container>(find.byKey(const Key('currentWeatherHeroCard')))
-        .padding as EdgeInsets;
+    final compactPadding =
+        tester
+                .widget<Container>(
+                  find.byKey(const Key('currentWeatherHeroCard')),
+                )
+                .padding
+            as EdgeInsets;
 
     tester.view.physicalSize = const Size(1024, 700);
     await tester.pumpWidget(buildSubject());
-    final expandedPadding = tester
-        .widget<Container>(find.byKey(const Key('currentWeatherHeroCard')))
-        .padding as EdgeInsets;
+    final expandedPadding =
+        tester
+                .widget<Container>(
+                  find.byKey(const Key('currentWeatherHeroCard')),
+                )
+                .padding
+            as EdgeInsets;
 
     expect(expandedPadding.left, greaterThan(compactPadding.left));
   });
 
-  testWidgets('lays out without overflow at a very narrow width',
-      (tester) async {
+  testWidgets('lays out without overflow at a very narrow width', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(280, 700));
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();

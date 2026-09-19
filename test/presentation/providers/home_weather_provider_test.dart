@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../utils/location_test_overrides.dart';
 import 'package:weather_now_flutter/core/error/cache_failures.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
@@ -53,6 +54,7 @@ void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
       overrides: [
+        ...locationTestOverrides(),
         weatherRepositoryProvider.overrideWithValue(mockRepository),
         locationServiceProvider.overrideWithValue(mockLocationService),
       ],
@@ -200,6 +202,7 @@ void main() {
     ProviderContainer buildContainerWithCache() {
       final container = ProviderContainer(
         overrides: [
+          ...locationTestOverrides(),
           weatherRepositoryProvider.overrideWithValue(mockRepository),
           locationServiceProvider.overrideWithValue(mockLocationService),
           weatherCacheRepositoryProvider.overrideWithValue(mockCacheRepository),
@@ -405,6 +408,7 @@ void main() {
     ProviderContainer buildContainerWithOfflineDataDisabled() {
       final container = ProviderContainer(
         overrides: [
+          ...locationTestOverrides(),
           weatherRepositoryProvider.overrideWithValue(mockRepository),
           locationServiceProvider.overrideWithValue(mockLocationService),
           weatherCacheRepositoryProvider.overrideWithValue(mockCacheRepository),
@@ -517,6 +521,7 @@ void main() {
     ProviderContainer build() {
       final container = ProviderContainer(
         overrides: [
+          ...locationTestOverrides(),
           weatherRepositoryProvider.overrideWithValue(mockRepository),
           locationServiceProvider.overrideWithValue(mockLocationService),
           weatherCacheRepositoryProvider.overrideWithValue(mockCacheRepository),

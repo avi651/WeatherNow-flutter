@@ -14,9 +14,6 @@ class GetForecast {
     required double latitude,
     required double longitude,
   }) {
-    return _repository.getForecast(
-      latitude: latitude,
-      longitude: longitude,
-    );
+    return _repository.getForecast(latitude: latitude, longitude: longitude);
   }
 }

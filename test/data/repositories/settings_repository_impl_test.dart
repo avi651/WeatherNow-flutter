@@ -64,15 +64,17 @@ void main() {
     repository = SettingsRepositoryImpl(localDataSource: dataSource);
   });
 
-  test('getSettings returns the defaults when nothing has been saved',
-      () async {
-    final result = await repository.getSettings();
+  test(
+    'getSettings returns the defaults when nothing has been saved',
+    () async {
+      final result = await repository.getSettings();
 
-    result.fold(
-      (_) => fail('expected Right'),
-      (settings) => expect(settings, AppSettings.defaults),
-    );
-  });
+      result.fold(
+        (_) => fail('expected Right'),
+        (settings) => expect(settings, AppSettings.defaults),
+      );
+    },
+  );
 
   test('getSettings falls back to the default unit for an unrecognized '
       'stored value', () async {
@@ -82,34 +84,41 @@ void main() {
 
     result.fold(
       (_) => fail('expected Right'),
-      (settings) =>
-          expect(settings.temperatureUnit, AppSettings.defaults.temperatureUnit),
+      (settings) => expect(
+        settings.temperatureUnit,
+        AppSettings.defaults.temperatureUnit,
+      ),
     );
   });
 
-  test('saveTemperatureUnit persists the unit, then getSettings reflects it',
-      () async {
-    await repository.saveTemperatureUnit(TemperatureUnit.fahrenheit);
+  test(
+    'saveTemperatureUnit persists the unit, then getSettings reflects it',
+    () async {
+      await repository.saveTemperatureUnit(TemperatureUnit.fahrenheit);
 
-    final result = await repository.getSettings();
+      final result = await repository.getSettings();
 
-    result.fold(
-      (_) => fail('expected Right'),
-      (settings) => expect(settings.temperatureUnit, TemperatureUnit.fahrenheit),
-    );
-  });
+      result.fold(
+        (_) => fail('expected Right'),
+        (settings) =>
+            expect(settings.temperatureUnit, TemperatureUnit.fahrenheit),
+      );
+    },
+  );
 
-  test('saveThemeMode persists the mode, then getSettings reflects it',
-      () async {
-    await repository.saveThemeMode(AppThemeMode.dark);
+  test(
+    'saveThemeMode persists the mode, then getSettings reflects it',
+    () async {
+      await repository.saveThemeMode(AppThemeMode.dark);
 
-    final result = await repository.getSettings();
+      final result = await repository.getSettings();
 
-    result.fold(
-      (_) => fail('expected Right'),
-      (settings) => expect(settings.themeMode, AppThemeMode.dark),
-    );
-  });
+      result.fold(
+        (_) => fail('expected Right'),
+        (settings) => expect(settings.themeMode, AppThemeMode.dark),
+      );
+    },
+  );
 
   test(
     'saveOfflineDataEnabled persists the flag, then getSettings reflects it',
@@ -125,21 +134,33 @@ void main() {
     },
   );
 
-  test('getSettings returns a CacheFailure when the data source throws',
-      () async {
-    dataSource.failWith = Exception('disk error');
+  test(
+    'getSettings returns a CacheFailure when the data source throws',
+    () async {
+      dataSource.failWith = Exception('disk error');
 
-    final result = await repository.getSettings();
+      final result = await repository.getSettings();
 
-    result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-  });
+      result.fold(
+        (failure) => expect(failure, isA<CacheFailure>()),
+        (_) => fail('expected Left'),
+      );
+    },
+  );
 
-  test('saveTemperatureUnit returns a CacheFailure when the data source throws',
-      () async {
-    dataSource.failWith = Exception('disk full');
+  test(
+    'saveTemperatureUnit returns a CacheFailure when the data source throws',
+    () async {
+      dataSource.failWith = Exception('disk full');
 
-    final result = await repository.saveTemperatureUnit(TemperatureUnit.celsius);
+      final result = await repository.saveTemperatureUnit(
+        TemperatureUnit.celsius,
+      );
 
-    result.fold((failure) => expect(failure, isA<CacheFailure>()), (_) => fail('expected Left'));
-  });
+      result.fold(
+        (failure) => expect(failure, isA<CacheFailure>()),
+        (_) => fail('expected Left'),
+      );
+    },
+  );
 }

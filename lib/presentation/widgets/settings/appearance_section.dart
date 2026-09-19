@@ -14,7 +14,8 @@ class AppearanceSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(settingsProvider).value?.themeMode ??
+    final mode =
+        ref.watch(settingsProvider).value?.themeMode ??
         AppSettings.defaults.themeMode;
 
     return SettingsSectionCard(

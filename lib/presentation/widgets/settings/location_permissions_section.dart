@@ -41,7 +41,10 @@ class LocationPermissionsSection extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleTap(WidgetRef ref, LocationPermissionStatus? status) async {
+  Future<void> _handleTap(
+    WidgetRef ref,
+    LocationPermissionStatus? status,
+  ) async {
     final service = ref.read(locationServiceProvider);
 
     switch (status) {

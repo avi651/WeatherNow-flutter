@@ -21,11 +21,10 @@ void main() {
     ),
   ];
 
-  testWidgets('labels the first day as Today and shows hi/lo for each day',
-      (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(home: DailyForecastStrip(days: days)),
-    );
+  testWidgets('labels the first day as Today and shows hi/lo for each day', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp(home: DailyForecastStrip(days: days)));
 
     expect(find.text('Today'), findsOneWidget);
     expect(find.textContaining('28'), findsOneWidget);
@@ -41,26 +40,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('cards grow on a wider (tablet) screen than a narrow (small phone) one',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320, 700));
-    await tester.pumpWidget(MaterialApp(home: DailyForecastStrip(days: days)));
-    final compactHeight = tester
-        .widget<SizedBox>(find.byKey(const Key('dailyForecastStripSize')))
-        .height;
+  testWidgets(
+    'cards grow on a wider (tablet) screen than a narrow (small phone) one',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 700));
+      await tester.pumpWidget(
+        MaterialApp(home: DailyForecastStrip(days: days)),
+      );
+      final compactHeight = tester
+          .widget<SizedBox>(find.byKey(const Key('dailyForecastStripSize')))
+          .height;
 
-    await tester.binding.setSurfaceSize(const Size(1024, 700));
-    await tester.pumpWidget(MaterialApp(home: DailyForecastStrip(days: days)));
-    final expandedHeight = tester
-        .widget<SizedBox>(find.byKey(const Key('dailyForecastStripSize')))
-        .height;
+      await tester.binding.setSurfaceSize(const Size(1024, 700));
+      await tester.pumpWidget(
+        MaterialApp(home: DailyForecastStrip(days: days)),
+      );
+      final expandedHeight = tester
+          .widget<SizedBox>(find.byKey(const Key('dailyForecastStripSize')))
+          .height;
 
-    expect(expandedHeight, greaterThan(compactHeight!));
+      expect(expandedHeight, greaterThan(compactHeight!));
 
-    await tester.binding.setSurfaceSize(null);
-  });
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 
-  testWidgets('lays out without overflow at a very narrow width', (tester) async {
+  testWidgets('lays out without overflow at a very narrow width', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(280, 700));
     await tester.pumpWidget(MaterialApp(home: DailyForecastStrip(days: days)));
     await tester.pumpAndSettle();
@@ -70,8 +77,9 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('lays out without overflow at a very wide (tablet) width',
-      (tester) async {
+  testWidgets('lays out without overflow at a very wide (tablet) width', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1400, 900));
     await tester.pumpWidget(MaterialApp(home: DailyForecastStrip(days: days)));
     await tester.pumpAndSettle();

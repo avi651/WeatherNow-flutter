@@ -91,7 +91,10 @@ class CachedCurrentWeatherModel {
     return CachedCurrentWeather(
       cityName: cityName,
       country: country,
-      fetchedAt: DateTime.fromMillisecondsSinceEpoch(fetchedAtEpochMs, isUtc: true),
+      fetchedAt: DateTime.fromMillisecondsSinceEpoch(
+        fetchedAtEpochMs,
+        isUtc: true,
+      ),
       weather: CurrentWeather(
         temperatureCelsius: temperatureCelsius,
         feelsLikeCelsius: feelsLikeCelsius,

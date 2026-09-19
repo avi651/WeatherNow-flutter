@@ -48,8 +48,9 @@ class FavoritesScreen extends ConsumerWidget {
           return LayoutBuilder(
             builder: (context, constraints) {
               final sizeClass = AppBreakpoints.classify(constraints.maxWidth);
-              final horizontalPadding =
-                  AppBreakpoints.spacingForSizeClass(sizeClass);
+              final horizontalPadding = AppBreakpoints.spacingForSizeClass(
+                sizeClass,
+              );
 
               return Center(
                 child: ConstrainedBox(
@@ -88,8 +89,9 @@ class FavoritesScreen extends ConsumerWidget {
                               onTap: onCitySelected == null
                                   ? null
                                   : () => onCitySelected!(city),
-                              onRemove: () =>
-                                  ref.read(favoritesProvider.notifier).remove(city),
+                              onRemove: () => ref
+                                  .read(favoritesProvider.notifier)
+                                  .remove(city),
                             );
                           },
                         ),
@@ -104,12 +106,8 @@ class FavoritesScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 1,
-        onDestinationSelected: (index) => navigateToTab(
-          context,
-          ref,
-          from: favoritesTabIndex,
-          to: index,
-        ),
+        onDestinationSelected: (index) =>
+            navigateToTab(context, ref, from: favoritesTabIndex, to: index),
       ),
     );
   }
@@ -250,10 +248,7 @@ class _EmptyFavorites extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              'No favorite cities yet',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('No favorite cities yet', style: theme.textTheme.titleMedium),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Tap the star on a city\'s weather to save it here.',

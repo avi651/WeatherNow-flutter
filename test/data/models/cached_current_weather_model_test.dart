@@ -16,33 +16,44 @@ void main() {
   );
   final fetchedAt = DateTime.utc(2026, 9, 18, 9, 5);
 
-  test('fromEntity -> toJson -> fromJson -> toEntity round-trips the weather', () {
+  test(
+    'fromEntity -> toJson -> fromJson -> toEntity round-trips the weather',
+    () {
+      final model = CachedCurrentWeatherModel.fromEntity(
+        weather: weather,
+        fetchedAt: fetchedAt,
+        cityName: 'Pune',
+        country: 'IN',
+      );
+
+      final restored = CachedCurrentWeatherModel.fromJson(model.toJson());
+      final entity = restored.toEntity();
+
+      expect(entity.weather, weather);
+      expect(entity.fetchedAt, fetchedAt);
+      expect(entity.cityName, 'Pune');
+      expect(entity.country, 'IN');
+    },
+  );
+
+  test('toJson stores the condition as its enum name', () {
     final model = CachedCurrentWeatherModel.fromEntity(
       weather: weather,
       fetchedAt: fetchedAt,
-      cityName: 'Pune',
-      country: 'IN',
     );
-
-    final restored = CachedCurrentWeatherModel.fromJson(model.toJson());
-    final entity = restored.toEntity();
-
-    expect(entity.weather, weather);
-    expect(entity.fetchedAt, fetchedAt);
-    expect(entity.cityName, 'Pune');
-    expect(entity.country, 'IN');
-  });
-
-  test('toJson stores the condition as its enum name', () {
-    final model = CachedCurrentWeatherModel.fromEntity(weather: weather, fetchedAt: fetchedAt);
 
     expect(model.toJson()['condition'], 'rain');
   });
 
   test('cityName and country are optional', () {
-    final model = CachedCurrentWeatherModel.fromEntity(weather: weather, fetchedAt: fetchedAt);
+    final model = CachedCurrentWeatherModel.fromEntity(
+      weather: weather,
+      fetchedAt: fetchedAt,
+    );
 
-    final restored = CachedCurrentWeatherModel.fromJson(model.toJson()).toEntity();
+    final restored = CachedCurrentWeatherModel.fromJson(
+      model.toJson(),
+    ).toEntity();
 
     expect(restored.cityName, isNull);
     expect(restored.country, isNull);

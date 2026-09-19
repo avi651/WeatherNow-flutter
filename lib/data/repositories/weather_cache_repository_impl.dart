@@ -38,7 +38,10 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
         cityName: cityName,
         country: country,
       );
-      await _localDataSource.putCurrentWeather(_keyFor(latitude, longitude), model.toJson());
+      await _localDataSource.putCurrentWeather(
+        _keyFor(latitude, longitude),
+        model.toJson(),
+      );
       return const Right(unit);
     } catch (error) {
       return Left(CacheFailure('Failed to cache current weather: $error'));
@@ -51,12 +54,16 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
     required double longitude,
   }) async {
     try {
-      final json = _localDataSource.getCurrentWeather(_keyFor(latitude, longitude));
+      final json = _localDataSource.getCurrentWeather(
+        _keyFor(latitude, longitude),
+      );
       if (json == null) return const Right(null);
 
       return Right(CachedCurrentWeatherModel.fromJson(json).toEntity());
     } catch (error) {
-      return Left(CacheFailure('Failed to read cached current weather: $error'));
+      return Left(
+        CacheFailure('Failed to read cached current weather: $error'),
+      );
     }
   }
 
@@ -76,7 +83,10 @@ class WeatherCacheRepositoryImpl implements WeatherCacheRepository {
         cityName: cityName,
         country: country,
       );
-      await _localDataSource.putForecast(_keyFor(latitude, longitude), model.toJson());
+      await _localDataSource.putForecast(
+        _keyFor(latitude, longitude),
+        model.toJson(),
+      );
       return const Right(unit);
     } catch (error) {
       return Left(CacheFailure('Failed to cache forecast: $error'));

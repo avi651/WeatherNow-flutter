@@ -52,8 +52,7 @@ void main() {
     expect(result[1].date, DateTime.utc(2026, 9, 17));
   });
 
-  test('picks the entry closest to midday as the representative condition',
-      () {
+  test('picks the entry closest to midday as the representative condition', () {
     final entries = [
       entry(
         forecastFor: DateTime.utc(2026, 9, 16, 3),

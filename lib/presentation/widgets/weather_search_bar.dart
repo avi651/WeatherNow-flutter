@@ -70,7 +70,7 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
   }
 
   void _selectCity(CitySuggestion city) {
-    ref.read(selectedCityProvider.notifier).select(city);
+    ref.read(selectedCityProvider.notifier).select(city, remember: true);
     _controller.text = city.name;
     ref.read(citySearchProvider.notifier).clear();
     _focusNode.unfocus();
@@ -80,7 +80,10 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
     // Guards against a duplicate request landing before the rebuild that
     // disables the button (below) takes effect — e.g. two taps in the
     // same frame.
-    if (ref.read(currentLocationProvider).isLoading) return;
+    if (ref.read(selectedCityProvider) == null &&
+        ref.read(currentLocationProvider).isLoading) {
+      return;
+    }
 
     // [currentLocationProvider] resolves once and caches the result (it
     // opts out of Riverpod's auto-retry, same as this app's other location
@@ -112,7 +115,9 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
     // resolving it well before the weather finishes loading and this widget
     // ever mounts).
     final activeCity = ref.watch(activeCityProvider);
-    if (_controller.text.isEmpty && !_focusNode.hasFocus && activeCity != null) {
+    if (_controller.text.isEmpty &&
+        !_focusNode.hasFocus &&
+        activeCity != null) {
       _controller.text = activeCity.name;
     }
 
@@ -131,14 +136,23 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
     // separate from `homeWeatherProvider`/`homeForecastProvider`'s broader
     // loading (which also covers e.g. the full error view's Retry) so the
     // button only reacts to *this* request.
-    final isLocating = ref.watch(currentLocationProvider).isLoading;
+    // A selected city short-circuits the provider (see
+    // [LocationNotNeededException]); its brief re-evaluation isn't
+    // "locating", so it must not flash the spinner or disable the button.
+    final isLocating =
+        ref.watch(selectedCityProvider) == null &&
+        ref.watch(currentLocationProvider).isLoading;
 
     // A failed fetch (permission denied, GPS unavailable, etc.) is reported
     // here — a transient snackbar — rather than through the big
     // full-screen error view: the rest of the app (previously-loaded
     // weather, the search bar itself) stays visible and interactive.
-    ref.listen<AsyncValue<DeviceLocation>>(currentLocationProvider, (previous, next) {
+    ref.listen<AsyncValue<DeviceLocation>>(currentLocationProvider, (
+      previous,
+      next,
+    ) {
       if (!next.hasError || next.isLoading) return;
+      if (next.error is LocationNotNeededException) return;
 
       final error = next.error;
       final message = error is HomeWeatherFailureException
@@ -217,7 +231,10 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
               clipBehavior: Clip.antiAlias,
               child: Material(
                 color: theme.colorScheme.surfaceContainerHigh,
-                child: CitySuggestionsList(state: searchState, onSelected: _selectCity),
+                child: CitySuggestionsList(
+                  state: searchState,
+                  onSelected: _selectCity,
+                ),
               ),
             ),
           ),

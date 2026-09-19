@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../utils/location_test_overrides.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
@@ -25,7 +26,10 @@ void main() {
 
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
-      overrides: [locationServiceProvider.overrideWithValue(mockLocationService)],
+      overrides: [
+        ...locationTestOverrides(),
+        locationServiceProvider.overrideWithValue(mockLocationService),
+      ],
     );
     addTearDown(container.dispose);
     return container;
@@ -47,23 +51,32 @@ void main() {
     verify(() => mockLocationService.getCurrentLocation()).called(1);
   });
 
-  test('resolves to the selected city, without touching the location service', () async {
-    final container = buildContainer();
-    container.read(selectedCityProvider.notifier).select(city);
+  test(
+    'resolves to the selected city, without touching the location service',
+    () async {
+      final container = buildContainer();
+      container.read(selectedCityProvider.notifier).select(city);
 
-    final location = await container.read(activeLocationProvider.future);
+      final location = await container.read(activeLocationProvider.future);
 
-    expect(location, const DeviceLocation(latitude: 51.5072, longitude: -0.1276));
-    verifyNever(() => mockLocationService.getCurrentLocation());
-  });
+      expect(
+        location,
+        const DeviceLocation(latitude: 51.5072, longitude: -0.1276),
+      );
+      verifyNever(() => mockLocationService.getCurrentLocation());
+    },
+  );
 
-  test('falls back to the device location after useDeviceLocation is called', () async {
-    final container = buildContainer();
-    container.read(selectedCityProvider.notifier).select(city);
-    container.read(selectedCityProvider.notifier).useDeviceLocation();
+  test(
+    'falls back to the device location after useDeviceLocation is called',
+    () async {
+      final container = buildContainer();
+      container.read(selectedCityProvider.notifier).select(city);
+      container.read(selectedCityProvider.notifier).useDeviceLocation();
 
-    final location = await container.read(activeLocationProvider.future);
+      final location = await container.read(activeLocationProvider.future);
 
-    expect(location, deviceLocation);
-  });
+      expect(location, deviceLocation);
+    },
+  );
 }

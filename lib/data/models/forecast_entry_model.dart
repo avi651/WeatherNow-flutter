@@ -18,14 +18,17 @@ class ForecastEntryModel {
 
   factory ForecastEntryModel.fromJson(Map<String, dynamic> json) {
     final main = json['main'] as Map<String, dynamic>;
-    final weather = (json['weather'] as List<dynamic>).first as Map<String, dynamic>;
+    final weather =
+        (json['weather'] as List<dynamic>).first as Map<String, dynamic>;
 
     return ForecastEntryModel(
       forecastForEpochSeconds: (json['dt'] as num).toInt(),
       temperatureCelsius: (main['temp'] as num).toDouble(),
       feelsLikeCelsius: (main['feels_like'] as num).toDouble(),
       humidityPercent: (main['humidity'] as num).toInt(),
-      condition: WeatherConditionMapper.fromOpenWeatherMain(weather['main'] as String),
+      condition: WeatherConditionMapper.fromOpenWeatherMain(
+        weather['main'] as String,
+      ),
       description: weather['description'] as String,
       // OpenWeatherMap omits `pop` for some historical forecast entries;
       // treat that as "no data" rather than failing the whole response.
@@ -71,12 +74,12 @@ class ForecastEntryModel {
 
   @override
   int get hashCode => Object.hash(
-        forecastForEpochSeconds,
-        temperatureCelsius,
-        feelsLikeCelsius,
-        humidityPercent,
-        condition,
-        description,
-        precipitationProbability,
-      );
+    forecastForEpochSeconds,
+    temperatureCelsius,
+    feelsLikeCelsius,
+    humidityPercent,
+    condition,
+    description,
+    precipitationProbability,
+  );
 }

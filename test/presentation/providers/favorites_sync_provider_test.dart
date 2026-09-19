@@ -23,7 +23,8 @@ class MockFavoritesRepository extends Mock implements FavoritesRepository {}
 
 class MockWeatherRepository extends Mock implements WeatherRepository {}
 
-class MockWeatherCacheRepository extends Mock implements WeatherCacheRepository {}
+class MockWeatherCacheRepository extends Mock
+    implements WeatherCacheRepository {}
 
 class MockSettingsRepository extends Mock implements SettingsRepository {}
 
@@ -91,7 +92,9 @@ void main() {
       overrides: [
         favoritesRepositoryProvider.overrideWithValue(mockFavoritesRepository),
         weatherRepositoryProvider.overrideWithValue(mockWeatherRepository),
-        weatherCacheRepositoryProvider.overrideWithValue(mockWeatherCacheRepository),
+        weatherCacheRepositoryProvider.overrideWithValue(
+          mockWeatherCacheRepository,
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -99,7 +102,9 @@ void main() {
   }
 
   test('does nothing when there are no favorites', () async {
-    when(() => mockFavoritesRepository.getFavorites()).thenAnswer((_) async => const Right([]));
+    when(
+      () => mockFavoritesRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([]));
 
     final container = buildContainer();
     await container.read(favoritesProvider.future);
@@ -178,53 +183,50 @@ void main() {
     await syncFuture;
   });
 
-  test(
-    'skips a favorite whose fetch fails but still succeeds and caches the '
-    'rest',
-    () async {
-      when(
-        () => mockFavoritesRepository.getFavorites(),
-      ).thenAnswer((_) async => const Right([pune, mumbai]));
-      when(
-        () => mockWeatherRepository.getCurrentWeather(
-          latitude: pune.latitude,
-          longitude: pune.longitude,
-        ),
-      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
-      when(
-        () => mockWeatherRepository.getCurrentWeather(
-          latitude: mumbai.latitude,
-          longitude: mumbai.longitude,
-        ),
-      ).thenAnswer((_) async => Right(weather));
+  test('skips a favorite whose fetch fails but still succeeds and caches the '
+      'rest', () async {
+    when(
+      () => mockFavoritesRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([pune, mumbai]));
+    when(
+      () => mockWeatherRepository.getCurrentWeather(
+        latitude: pune.latitude,
+        longitude: pune.longitude,
+      ),
+    ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+    when(
+      () => mockWeatherRepository.getCurrentWeather(
+        latitude: mumbai.latitude,
+        longitude: mumbai.longitude,
+      ),
+    ).thenAnswer((_) async => Right(weather));
 
-      final container = buildContainer();
-      await container.read(favoritesProvider.future);
-      await container.read(favoritesSyncProvider.notifier).sync();
+    final container = buildContainer();
+    await container.read(favoritesProvider.future);
+    await container.read(favoritesSyncProvider.notifier).sync();
 
-      expect(container.read(favoritesSyncProvider).hasError, isFalse);
-      verifyNever(
-        () => mockWeatherCacheRepository.saveCurrentWeather(
-          latitude: pune.latitude,
-          longitude: pune.longitude,
-          weather: any(named: 'weather'),
-          fetchedAt: any(named: 'fetchedAt'),
-          cityName: any(named: 'cityName'),
-          country: any(named: 'country'),
-        ),
-      );
-      verify(
-        () => mockWeatherCacheRepository.saveCurrentWeather(
-          latitude: mumbai.latitude,
-          longitude: mumbai.longitude,
-          weather: weather,
-          fetchedAt: any(named: 'fetchedAt'),
-          cityName: mumbai.name,
-          country: mumbai.country,
-        ),
-      ).called(1);
-    },
-  );
+    expect(container.read(favoritesSyncProvider).hasError, isFalse);
+    verifyNever(
+      () => mockWeatherCacheRepository.saveCurrentWeather(
+        latitude: pune.latitude,
+        longitude: pune.longitude,
+        weather: any(named: 'weather'),
+        fetchedAt: any(named: 'fetchedAt'),
+        cityName: any(named: 'cityName'),
+        country: any(named: 'country'),
+      ),
+    );
+    verify(
+      () => mockWeatherCacheRepository.saveCurrentWeather(
+        latitude: mumbai.latitude,
+        longitude: mumbai.longitude,
+        weather: weather,
+        fetchedAt: any(named: 'fetchedAt'),
+        cityName: mumbai.name,
+        country: mumbai.country,
+      ),
+    ).called(1);
+  });
 
   test('reports an error when every favorite fails to sync', () async {
     when(
@@ -278,61 +280,71 @@ void main() {
         longitude: pune.longitude,
       ),
     ).thenAnswer(
-      (_) async => Right(CachedCurrentWeather(weather: weather, fetchedAt: DateTime.now())),
+      (_) async => Right(
+        CachedCurrentWeather(weather: weather, fetchedAt: DateTime.now()),
+      ),
     );
 
     await container.read(favoritesSyncProvider.notifier).sync();
 
-    final refreshed = await container.read(favoriteCachedWeatherProvider(pune).future);
+    final refreshed = await container.read(
+      favoriteCachedWeatherProvider(pune).future,
+    );
     expect(refreshed, isNotNull);
     expect(refreshed!.weather, weather);
   });
 
-  test('does not fetch or cache anything when offline data is disabled',
-      () async {
-    when(
-      () => mockFavoritesRepository.getFavorites(),
-    ).thenAnswer((_) async => const Right([pune]));
-    final mockSettingsRepository = MockSettingsRepository();
-    when(() => mockSettingsRepository.getSettings()).thenAnswer(
-      (_) async => const Right(
-        AppSettings(
-          temperatureUnit: TemperatureUnit.celsius,
-          themeMode: AppThemeMode.system,
-          offlineDataEnabled: false,
+  test(
+    'does not fetch or cache anything when offline data is disabled',
+    () async {
+      when(
+        () => mockFavoritesRepository.getFavorites(),
+      ).thenAnswer((_) async => const Right([pune]));
+      final mockSettingsRepository = MockSettingsRepository();
+      when(() => mockSettingsRepository.getSettings()).thenAnswer(
+        (_) async => const Right(
+          AppSettings(
+            temperatureUnit: TemperatureUnit.celsius,
+            themeMode: AppThemeMode.system,
+            offlineDataEnabled: false,
+          ),
         ),
-      ),
-    );
+      );
 
-    final container = ProviderContainer(
-      overrides: [
-        favoritesRepositoryProvider.overrideWithValue(mockFavoritesRepository),
-        weatherRepositoryProvider.overrideWithValue(mockWeatherRepository),
-        weatherCacheRepositoryProvider.overrideWithValue(mockWeatherCacheRepository),
-        settingsRepositoryProvider.overrideWithValue(mockSettingsRepository),
-      ],
-    );
-    addTearDown(container.dispose);
-    await container.read(favoritesProvider.future);
+      final container = ProviderContainer(
+        overrides: [
+          favoritesRepositoryProvider.overrideWithValue(
+            mockFavoritesRepository,
+          ),
+          weatherRepositoryProvider.overrideWithValue(mockWeatherRepository),
+          weatherCacheRepositoryProvider.overrideWithValue(
+            mockWeatherCacheRepository,
+          ),
+          settingsRepositoryProvider.overrideWithValue(mockSettingsRepository),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(favoritesProvider.future);
 
-    await container.read(favoritesSyncProvider.notifier).sync();
+      await container.read(favoritesSyncProvider.notifier).sync();
 
-    expect(container.read(favoritesSyncProvider).hasError, isTrue);
-    verifyNever(
-      () => mockWeatherRepository.getCurrentWeather(
-        latitude: any(named: 'latitude'),
-        longitude: any(named: 'longitude'),
-      ),
-    );
-    verifyNever(
-      () => mockWeatherCacheRepository.saveCurrentWeather(
-        latitude: any(named: 'latitude'),
-        longitude: any(named: 'longitude'),
-        weather: any(named: 'weather'),
-        fetchedAt: any(named: 'fetchedAt'),
-        cityName: any(named: 'cityName'),
-        country: any(named: 'country'),
-      ),
-    );
-  });
+      expect(container.read(favoritesSyncProvider).hasError, isTrue);
+      verifyNever(
+        () => mockWeatherRepository.getCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      );
+      verifyNever(
+        () => mockWeatherCacheRepository.saveCurrentWeather(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          weather: any(named: 'weather'),
+          fetchedAt: any(named: 'fetchedAt'),
+          cityName: any(named: 'cityName'),
+          country: any(named: 'country'),
+        ),
+      );
+    },
+  );
 }

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../utils/location_test_overrides.dart';
 import 'package:weather_now_flutter/core/error/cache_failures.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
 import 'package:weather_now_flutter/core/error/location_failures.dart';
@@ -27,7 +28,8 @@ class MockWeatherRepository extends Mock implements WeatherRepository {}
 
 class MockLocationService extends Mock implements LocationService {}
 
-class MockWeatherCacheRepository extends Mock implements WeatherCacheRepository {}
+class MockWeatherCacheRepository extends Mock
+    implements WeatherCacheRepository {}
 
 class MockSettingsRepository extends Mock implements SettingsRepository {}
 
@@ -54,6 +56,7 @@ void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
       overrides: [
+        ...locationTestOverrides(),
         weatherRepositoryProvider.overrideWithValue(mockRepository),
         locationServiceProvider.overrideWithValue(mockLocationService),
       ],
@@ -198,6 +201,7 @@ void main() {
     ProviderContainer buildContainerWithCache() {
       final container = ProviderContainer(
         overrides: [
+          ...locationTestOverrides(),
           weatherRepositoryProvider.overrideWithValue(mockRepository),
           locationServiceProvider.overrideWithValue(mockLocationService),
           weatherCacheRepositoryProvider.overrideWithValue(mockCacheRepository),
@@ -211,81 +215,90 @@ void main() {
       mockCacheRepository = MockWeatherCacheRepository();
     });
 
-    test('a successful fetch is cached and reported as not from cache', () async {
-      stubLocationSuccess();
-      when(
-        () => mockRepository.getForecast(
-          latitude: any(named: 'latitude'),
-          longitude: any(named: 'longitude'),
-        ),
-      ).thenAnswer((_) async => Right(forecast));
-      when(
-        () => mockCacheRepository.saveForecast(
-          latitude: any(named: 'latitude'),
-          longitude: any(named: 'longitude'),
-          forecast: any(named: 'forecast'),
-          fetchedAt: any(named: 'fetchedAt'),
-          cityName: any(named: 'cityName'),
-          country: any(named: 'country'),
-        ),
-      ).thenAnswer((_) async => const Right(unit));
+    test(
+      'a successful fetch is cached and reported as not from cache',
+      () async {
+        stubLocationSuccess();
+        when(
+          () => mockRepository.getForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer((_) async => Right(forecast));
+        when(
+          () => mockCacheRepository.saveForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+            forecast: any(named: 'forecast'),
+            fetchedAt: any(named: 'fetchedAt'),
+            cityName: any(named: 'cityName'),
+            country: any(named: 'country'),
+          ),
+        ).thenAnswer((_) async => const Right(unit));
 
-      final container = buildContainerWithCache();
-      await container.read(homeForecastProvider.future);
+        final container = buildContainerWithCache();
+        await container.read(homeForecastProvider.future);
 
-      verify(
-        () => mockCacheRepository.saveForecast(
-          latitude: location.latitude,
-          longitude: location.longitude,
-          forecast: forecast,
-          fetchedAt: any(named: 'fetchedAt'),
-          cityName: any(named: 'cityName'),
-          country: any(named: 'country'),
-        ),
-      ).called(1);
+        verify(
+          () => mockCacheRepository.saveForecast(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            forecast: forecast,
+            fetchedAt: any(named: 'fetchedAt'),
+            cityName: any(named: 'cityName'),
+            country: any(named: 'country'),
+          ),
+        ).called(1);
 
-      final freshness = container.read(forecastFreshnessProvider);
-      expect(freshness!.isFromCache, isFalse);
-    });
+        final freshness = container.read(forecastFreshnessProvider);
+        expect(freshness!.isFromCache, isFalse);
+      },
+    );
 
-    test('falls back to the cached forecast when the live fetch fails', () async {
-      stubLocationSuccess();
-      when(
-        () => mockRepository.getForecast(
-          latitude: any(named: 'latitude'),
-          longitude: any(named: 'longitude'),
-        ),
-      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+    test(
+      'falls back to the cached forecast when the live fetch fails',
+      () async {
+        stubLocationSuccess();
+        when(
+          () => mockRepository.getForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer(
+          (_) async => const Left(RemoteDataFailure('No connection')),
+        );
 
-      final cachedAt = DateTime.utc(2026, 9, 17);
-      when(
-        () => mockCacheRepository.getForecast(
-          latitude: any(named: 'latitude'),
-          longitude: any(named: 'longitude'),
-        ),
-      ).thenAnswer(
-        (_) async => Right(CachedForecast(forecast: forecast, fetchedAt: cachedAt)),
-      );
+        final cachedAt = DateTime.utc(2026, 9, 17);
+        when(
+          () => mockCacheRepository.getForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              Right(CachedForecast(forecast: forecast, fetchedAt: cachedAt)),
+        );
 
-      final container = buildContainerWithCache();
-      final result = await container.read(homeForecastProvider.future);
+        final container = buildContainerWithCache();
+        final result = await container.read(homeForecastProvider.future);
 
-      expect(result, forecast);
-      final freshness = container.read(forecastFreshnessProvider);
-      expect(freshness!.isFromCache, isTrue);
-      expect(freshness.fetchedAt, cachedAt);
+        expect(result, forecast);
+        final freshness = container.read(forecastFreshnessProvider);
+        expect(freshness!.isFromCache, isTrue);
+        expect(freshness.fetchedAt, cachedAt);
 
-      verifyNever(
-        () => mockCacheRepository.saveForecast(
-          latitude: any(named: 'latitude'),
-          longitude: any(named: 'longitude'),
-          forecast: any(named: 'forecast'),
-          fetchedAt: any(named: 'fetchedAt'),
-          cityName: any(named: 'cityName'),
-          country: any(named: 'country'),
-        ),
-      );
-    });
+        verifyNever(
+          () => mockCacheRepository.saveForecast(
+            latitude: any(named: 'latitude'),
+            longitude: any(named: 'longitude'),
+            forecast: any(named: 'forecast'),
+            fetchedAt: any(named: 'fetchedAt'),
+            cityName: any(named: 'cityName'),
+            country: any(named: 'country'),
+          ),
+        );
+      },
+    );
 
     test(
       'propagates the original failure — not a cache error — when nothing is cached',
@@ -296,7 +309,9 @@ void main() {
             latitude: any(named: 'latitude'),
             longitude: any(named: 'longitude'),
           ),
-        ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+        ).thenAnswer(
+          (_) async => const Left(RemoteDataFailure('No connection')),
+        );
         when(
           () => mockCacheRepository.getForecast(
             latitude: any(named: 'latitude'),
@@ -310,7 +325,10 @@ void main() {
 
         final state = container.read(homeForecastProvider);
         expect(state.hasError, isTrue);
-        expect((state.error as HomeWeatherFailureException).message, 'No connection');
+        expect(
+          (state.error as HomeWeatherFailureException).message,
+          'No connection',
+        );
       },
     );
 
@@ -323,7 +341,9 @@ void main() {
             latitude: any(named: 'latitude'),
             longitude: any(named: 'longitude'),
           ),
-        ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+        ).thenAnswer(
+          (_) async => const Left(RemoteDataFailure('No connection')),
+        );
         when(
           () => mockCacheRepository.getForecast(
             latitude: any(named: 'latitude'),
@@ -337,7 +357,10 @@ void main() {
 
         final state = container.read(homeForecastProvider);
         expect(state.hasError, isTrue);
-        expect((state.error as HomeWeatherFailureException).message, 'No connection');
+        expect(
+          (state.error as HomeWeatherFailureException).message,
+          'No connection',
+        );
       },
     );
   });
@@ -349,6 +372,7 @@ void main() {
     ProviderContainer buildContainerWithOfflineDataDisabled() {
       final container = ProviderContainer(
         overrides: [
+          ...locationTestOverrides(),
           weatherRepositoryProvider.overrideWithValue(mockRepository),
           locationServiceProvider.overrideWithValue(mockLocationService),
           weatherCacheRepositoryProvider.overrideWithValue(mockCacheRepository),
@@ -397,33 +421,33 @@ void main() {
       );
     });
 
-    test(
-      'a failed fetch surfaces the original failure without reading the '
-      'cache, even when something is cached',
-      () async {
-        stubLocationSuccess();
-        when(
-          () => mockRepository.getForecast(
-            latitude: any(named: 'latitude'),
-            longitude: any(named: 'longitude'),
-          ),
-        ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
+    test('a failed fetch surfaces the original failure without reading the '
+        'cache, even when something is cached', () async {
+      stubLocationSuccess();
+      when(
+        () => mockRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      ).thenAnswer((_) async => const Left(RemoteDataFailure('No connection')));
 
-        final container = buildContainerWithOfflineDataDisabled();
+      final container = buildContainerWithOfflineDataDisabled();
 
-        await ignoreProviderError(container.read(homeForecastProvider.future));
+      await ignoreProviderError(container.read(homeForecastProvider.future));
 
-        final state = container.read(homeForecastProvider);
-        expect(state.hasError, isTrue);
-        expect((state.error as HomeWeatherFailureException).message, 'No connection');
-        verifyNever(
-          () => mockCacheRepository.getForecast(
-            latitude: any(named: 'latitude'),
-            longitude: any(named: 'longitude'),
-          ),
-        );
-      },
-    );
+      final state = container.read(homeForecastProvider);
+      expect(state.hasError, isTrue);
+      expect(
+        (state.error as HomeWeatherFailureException).message,
+        'No connection',
+      );
+      verifyNever(
+        () => mockCacheRepository.getForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+        ),
+      );
+    });
   });
 
   group('offline data toggled on at runtime', () {
@@ -466,6 +490,7 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            ...locationTestOverrides(),
             weatherRepositoryProvider.overrideWithValue(mockRepository),
             locationServiceProvider.overrideWithValue(mockLocationService),
             weatherCacheRepositoryProvider.overrideWithValue(

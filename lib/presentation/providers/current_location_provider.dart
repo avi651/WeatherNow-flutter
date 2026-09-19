@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/location/device_location.dart';
 import '../../di/providers.dart';
 import 'home_weather_exception.dart';
+import 'selected_city_provider.dart';
 
 /// Resolves the device's current location once and shares the result
 /// with anything that watches it (both [HomeWeatherNotifier] and
@@ -20,6 +21,13 @@ import 'home_weather_exception.dart';
 /// re-invokes [LocationService.getCurrentLocation] in the background for
 /// up to ~38 seconds before letting the error through.
 final currentLocationProvider = FutureProvider<DeviceLocation>((ref) async {
+  // Only ask the device where it is when no city was chosen; the search
+  // bar watches this provider at all times, so without the guard a last
+  // searched city would still trigger a location request at launch.
+  if (ref.watch(selectedCityProvider) != null) {
+    throw const LocationNotNeededException();
+  }
+
   final locationService = ref.watch(locationServiceProvider);
   final result = await locationService.getCurrentLocation();
 

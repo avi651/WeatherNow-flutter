@@ -138,7 +138,10 @@ class CachedForecastModel {
     return CachedForecast(
       cityName: cityName,
       country: country,
-      fetchedAt: DateTime.fromMillisecondsSinceEpoch(fetchedAtEpochMs, isUtc: true),
+      fetchedAt: DateTime.fromMillisecondsSinceEpoch(
+        fetchedAtEpochMs,
+        isUtc: true,
+      ),
       forecast: Forecast(
         entries: entries.map((entry) => entry.toEntity()).toList(),
       ),

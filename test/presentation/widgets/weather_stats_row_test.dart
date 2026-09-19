@@ -29,8 +29,9 @@ void main() {
     expect(find.text('1013 hPa'), findsOneWidget);
   });
 
-  testWidgets('uses Wrap so stats can reflow instead of overflowing',
-      (tester) async {
+  testWidgets('uses Wrap so stats can reflow instead of overflowing', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(home: WeatherStatsRow(weather: weather)),
     );
@@ -38,8 +39,9 @@ void main() {
     expect(find.byType(Wrap), findsOneWidget);
   });
 
-  testWidgets('lays out without overflow at an extremely narrow width',
-      (tester) async {
+  testWidgets('lays out without overflow at an extremely narrow width', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(240, 400));
     await tester.pumpWidget(
       MaterialApp(home: WeatherStatsRow(weather: weather)),

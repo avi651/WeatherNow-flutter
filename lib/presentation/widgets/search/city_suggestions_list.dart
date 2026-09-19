@@ -49,7 +49,9 @@ class CitySuggestionsList extends StatelessWidget {
             Expanded(
               child: Text(
                 state.errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
           ],

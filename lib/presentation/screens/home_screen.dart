@@ -9,6 +9,7 @@ import '../providers/favorite_provider.dart';
 import '../providers/home_forecast_provider.dart';
 import '../providers/home_weather_exception.dart';
 import '../providers/home_weather_provider.dart';
+import '../providers/selected_city_provider.dart';
 import '../providers/temperature_unit_provider.dart';
 import '../providers/weather_refresh_provider.dart';
 import '../providers/weather_freshness_provider.dart';
@@ -75,15 +76,20 @@ class HomeScreen extends ConsumerWidget {
     } else if ((weatherState.hasError || forecastState.hasError) &&
         !hasDisplayableWeather) {
       final error = weatherState.error ?? forecastState.error;
-      body = WeatherErrorView(
-        message: error is HomeWeatherFailureException
-            ? error.message
-            : 'Something went wrong. Please try again.',
-        onRetry: () {
-          ref.read(homeWeatherProvider.notifier).retry();
-          ref.read(homeForecastProvider.notifier).retry();
-        },
-      );
+      final message = error is HomeWeatherFailureException
+          ? error.message
+          : 'Something went wrong. Please try again.';
+      void retry() {
+        ref.read(homeWeatherProvider.notifier).retry();
+        ref.read(homeForecastProvider.notifier).retry();
+      }
+
+      // With no city chosen the failure is (almost always) the device
+      // location; keep the search bar on screen so the user can search
+      // instead of being stuck behind a lone Retry button.
+      body = ref.watch(selectedCityProvider) == null
+          ? _LocationFailedState(message: message, onRetry: retry)
+          : WeatherErrorView(message: message, onRetry: retry);
     } else {
       final weather = weatherState.value!;
       final forecast = forecastState.value!;
@@ -202,5 +208,55 @@ class HomeScreen extends ConsumerWidget {
   /// (see [navigateToTab]).
   void _onDestinationSelected(BuildContext context, WidgetRef ref, int index) {
     navigateToTab(context, ref, from: homeTabIndex, to: index);
+  }
+}
+
+/// Shown when nothing is selected and the device location couldn't be
+/// resolved (denied, disabled, timed out): the failure message with Retry,
+/// plus the search bar so a city can be searched instead.
+class _LocationFailedState extends StatelessWidget {
+  const _LocationFailedState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      key: const Key('locationFailedState'),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const HomeHeader(),
+          const SizedBox(height: AppSpacing.lg),
+          const WeatherSearchBar(),
+          const SizedBox(height: AppSpacing.xl),
+          Icon(
+            Icons.location_off_outlined,
+            size: 48,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Center(
+            child: FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

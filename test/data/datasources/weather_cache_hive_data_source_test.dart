@@ -20,11 +20,14 @@ void main() {
     expect(dataSource.getCurrentWeather('key1'), isNull);
   });
 
-  test('putCurrentWeather then getCurrentWeather round-trips the value', () async {
-    await dataSource.putCurrentWeather('key1', {'temperatureCelsius': 21.5});
+  test(
+    'putCurrentWeather then getCurrentWeather round-trips the value',
+    () async {
+      await dataSource.putCurrentWeather('key1', {'temperatureCelsius': 21.5});
 
-    expect(dataSource.getCurrentWeather('key1')!['temperatureCelsius'], 21.5);
-  });
+      expect(dataSource.getCurrentWeather('key1')!['temperatureCelsius'], 21.5);
+    },
+  );
 
   test('getForecast is null for a fresh box', () {
     expect(dataSource.getForecast('key1'), isNull);
@@ -46,14 +49,17 @@ void main() {
     expect(dataSource.getForecast('key1'), isNull);
   });
 
-  test('a cached value survives a fresh data source over the same boxes', () async {
-    await dataSource.putCurrentWeather('key1', {'temperatureCelsius': 21.5});
+  test(
+    'a cached value survives a fresh data source over the same boxes',
+    () async {
+      await dataSource.putCurrentWeather('key1', {'temperatureCelsius': 21.5});
 
-    final restarted = HiveWeatherCacheDataSource(
-      currentWeatherBox: Hive.box(HiveBoxes.currentWeatherCache),
-      forecastBox: Hive.box(HiveBoxes.forecastCache),
-    );
+      final restarted = HiveWeatherCacheDataSource(
+        currentWeatherBox: Hive.box(HiveBoxes.currentWeatherCache),
+        forecastBox: Hive.box(HiveBoxes.forecastCache),
+      );
 
-    expect(restarted.getCurrentWeather('key1')!['temperatureCelsius'], 21.5);
-  });
+      expect(restarted.getCurrentWeather('key1')!['temperatureCelsius'], 21.5);
+    },
+  );
 }

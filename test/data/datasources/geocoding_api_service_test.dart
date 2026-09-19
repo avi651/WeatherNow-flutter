@@ -27,7 +27,9 @@ void main() {
 
   Response<List<dynamic>> response({List<dynamic>? data}) {
     return Response<List<dynamic>>(
-      requestOptions: RequestOptions(path: GeocodingApiEndpoints.directGeocoding),
+      requestOptions: RequestOptions(
+        path: GeocodingApiEndpoints.directGeocoding,
+      ),
       statusCode: 200,
       data: data,
     );
@@ -76,43 +78,50 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test('throws GeocodingApiException with status code on ServerFailure', () async {
-      when(
-        () => mockApiClient.get<List<dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => const Left(ServerFailure('Unauthorized', statusCode: 401)),
-      );
+    test(
+      'throws GeocodingApiException with status code on ServerFailure',
+      () async {
+        when(
+          () => mockApiClient.get<List<dynamic>>(
+            any(),
+            queryParameters: any(named: 'queryParameters'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              const Left(ServerFailure('Unauthorized', statusCode: 401)),
+        );
 
-      expect(
-        () => service.searchCities(query: query),
-        throwsA(
-          isA<GeocodingApiException>()
-              .having((e) => e.message, 'message', 'Unauthorized')
-              .having((e) => e.statusCode, 'statusCode', 401),
-        ),
-      );
-    });
+        expect(
+          () => service.searchCities(query: query),
+          throwsA(
+            isA<GeocodingApiException>()
+                .having((e) => e.message, 'message', 'Unauthorized')
+                .having((e) => e.statusCode, 'statusCode', 401),
+          ),
+        );
+      },
+    );
 
-    test('throws GeocodingApiException without a status code on other failures', () async {
-      when(
-        () => mockApiClient.get<List<dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer((_) async => const Left(NetworkFailure('No connection')));
+    test(
+      'throws GeocodingApiException without a status code on other failures',
+      () async {
+        when(
+          () => mockApiClient.get<List<dynamic>>(
+            any(),
+            queryParameters: any(named: 'queryParameters'),
+          ),
+        ).thenAnswer((_) async => const Left(NetworkFailure('No connection')));
 
-      expect(
-        () => service.searchCities(query: query),
-        throwsA(
-          isA<GeocodingApiException>()
-              .having((e) => e.message, 'message', 'No connection')
-              .having((e) => e.statusCode, 'statusCode', isNull),
-        ),
-      );
-    });
+        expect(
+          () => service.searchCities(query: query),
+          throwsA(
+            isA<GeocodingApiException>()
+                .having((e) => e.message, 'message', 'No connection')
+                .having((e) => e.statusCode, 'statusCode', isNull),
+          ),
+        );
+      },
+    );
   });
 
   group('GeocodingApiService.reverseGeocode', () {
@@ -134,7 +143,12 @@ void main() {
         (_) async => Right(
           response(
             data: [
-              {'name': 'Pune', 'country': 'IN', 'lat': latitude, 'lon': longitude},
+              {
+                'name': 'Pune',
+                'country': 'IN',
+                'lat': latitude,
+                'lon': longitude,
+              },
             ],
           ),
         ),
@@ -172,24 +186,29 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test('throws GeocodingApiException with status code on ServerFailure', () async {
-      when(
-        () => mockApiClient.get<List<dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => const Left(ServerFailure('Unauthorized', statusCode: 401)),
-      );
+    test(
+      'throws GeocodingApiException with status code on ServerFailure',
+      () async {
+        when(
+          () => mockApiClient.get<List<dynamic>>(
+            any(),
+            queryParameters: any(named: 'queryParameters'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              const Left(ServerFailure('Unauthorized', statusCode: 401)),
+        );
 
-      expect(
-        () => service.reverseGeocode(latitude: latitude, longitude: longitude),
-        throwsA(
-          isA<GeocodingApiException>()
-              .having((e) => e.message, 'message', 'Unauthorized')
-              .having((e) => e.statusCode, 'statusCode', 401),
-        ),
-      );
-    });
+        expect(
+          () =>
+              service.reverseGeocode(latitude: latitude, longitude: longitude),
+          throwsA(
+            isA<GeocodingApiException>()
+                .having((e) => e.message, 'message', 'Unauthorized')
+                .having((e) => e.statusCode, 'statusCode', 401),
+          ),
+        );
+      },
+    );
   });
 }

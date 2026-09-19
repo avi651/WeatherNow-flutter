@@ -13,7 +13,8 @@ class UnitsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unit = ref.watch(settingsProvider).value?.temperatureUnit ??
+    final unit =
+        ref.watch(settingsProvider).value?.temperatureUnit ??
         AppSettings.defaults.temperatureUnit;
 
     return SettingsSectionCard(
@@ -23,12 +24,20 @@ class UnitsSection extends ConsumerWidget {
         SegmentedButton<TemperatureUnit>(
           key: const Key('temperatureUnitSegmented'),
           segments: const [
-            ButtonSegment(value: TemperatureUnit.celsius, label: Text('Celsius (°C)')),
-            ButtonSegment(value: TemperatureUnit.fahrenheit, label: Text('Fahrenheit (°F)')),
+            ButtonSegment(
+              value: TemperatureUnit.celsius,
+              label: Text('Celsius (°C)'),
+            ),
+            ButtonSegment(
+              value: TemperatureUnit.fahrenheit,
+              label: Text('Fahrenheit (°F)'),
+            ),
           ],
           selected: {unit},
           onSelectionChanged: (selection) {
-            ref.read(settingsProvider.notifier).setTemperatureUnit(selection.first);
+            ref
+                .read(settingsProvider.notifier)
+                .setTemperatureUnit(selection.first);
           },
         ),
       ],

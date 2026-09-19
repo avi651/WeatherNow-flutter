@@ -28,7 +28,9 @@ class SettingsScreen extends ConsumerWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final sizeClass = AppBreakpoints.classify(constraints.maxWidth);
-          final horizontalPadding = AppBreakpoints.spacingForSizeClass(sizeClass);
+          final horizontalPadding = AppBreakpoints.spacingForSizeClass(
+            sizeClass,
+          );
 
           return Center(
             child: ConstrainedBox(
@@ -61,12 +63,8 @@ class SettingsScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 2,
-        onDestinationSelected: (index) => navigateToTab(
-          context,
-          ref,
-          from: settingsTabIndex,
-          to: index,
-        ),
+        onDestinationSelected: (index) =>
+            navigateToTab(context, ref, from: settingsTabIndex, to: index),
       ),
     );
   }

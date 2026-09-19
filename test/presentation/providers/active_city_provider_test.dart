@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../utils/location_test_overrides.dart';
 import 'package:weather_now_flutter/core/location/device_location.dart';
 import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
@@ -19,7 +20,10 @@ void main() {
   late MockLocationService mockLocationService;
   late MockGeocodingRepository mockGeocodingRepository;
 
-  const deviceLocation = DeviceLocation(latitude: 18.5213738, longitude: 73.8545071);
+  const deviceLocation = DeviceLocation(
+    latitude: 18.5213738,
+    longitude: 73.8545071,
+  );
   const pune = CitySuggestion(
     name: 'Pune',
     state: 'Maharashtra',
@@ -38,6 +42,7 @@ void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
       overrides: [
+        ...locationTestOverrides(),
         locationServiceProvider.overrideWithValue(mockLocationService),
         geocodingRepositoryProvider.overrideWithValue(mockGeocodingRepository),
       ],
@@ -49,8 +54,9 @@ void main() {
   setUp(() {
     mockLocationService = MockLocationService();
     mockGeocodingRepository = MockGeocodingRepository();
-    when(() => mockLocationService.getCurrentLocation())
-        .thenAnswer((_) async => const Right(deviceLocation));
+    when(
+      () => mockLocationService.getCurrentLocation(),
+    ).thenAnswer((_) async => const Right(deviceLocation));
     when(
       () => mockGeocodingRepository.reverseGeocode(
         latitude: any(named: 'latitude'),
@@ -65,29 +71,37 @@ void main() {
     expect(container.read(activeCityProvider), isNull);
   });
 
-  test('resolves to the reverse-geocoded device-location city once available', () async {
-    final container = buildContainer();
+  test(
+    'resolves to the reverse-geocoded device-location city once available',
+    () async {
+      final container = buildContainer();
 
-    await container.read(currentLocationCityProvider.future);
+      await container.read(currentLocationCityProvider.future);
 
-    expect(container.read(activeCityProvider), pune);
-  });
+      expect(container.read(activeCityProvider), pune);
+    },
+  );
 
-  test('prefers the explicitly selected city over the device location', () async {
-    final container = buildContainer();
-    await container.read(currentLocationCityProvider.future);
-    container.read(selectedCityProvider.notifier).select(london);
+  test(
+    'prefers the explicitly selected city over the device location',
+    () async {
+      final container = buildContainer();
+      await container.read(currentLocationCityProvider.future);
+      container.read(selectedCityProvider.notifier).select(london);
 
-    expect(container.read(activeCityProvider), london);
-  });
+      expect(container.read(activeCityProvider), london);
+    },
+  );
 
-  test('falls back to the device-location city after reverting from a selection',
-      () async {
-    final container = buildContainer();
-    await container.read(currentLocationCityProvider.future);
-    container.read(selectedCityProvider.notifier).select(london);
-    container.read(selectedCityProvider.notifier).useDeviceLocation();
+  test(
+    'falls back to the device-location city after reverting from a selection',
+    () async {
+      final container = buildContainer();
+      await container.read(currentLocationCityProvider.future);
+      container.read(selectedCityProvider.notifier).select(london);
+      container.read(selectedCityProvider.notifier).useDeviceLocation();
 
-    expect(container.read(activeCityProvider), pune);
-  });
+      expect(container.read(activeCityProvider), pune);
+    },
+  );
 }

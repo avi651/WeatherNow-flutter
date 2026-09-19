@@ -69,6 +69,7 @@ class FavoritesSyncNotifier extends AsyncNotifier<void> {
   }
 }
 
-final favoritesSyncProvider = AsyncNotifierProvider<FavoritesSyncNotifier, void>(
-  FavoritesSyncNotifier.new,
-);
+final favoritesSyncProvider =
+    AsyncNotifierProvider<FavoritesSyncNotifier, void>(
+      FavoritesSyncNotifier.new,
+    );

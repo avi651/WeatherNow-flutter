@@ -35,14 +35,20 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      expect(container.read(weatherApiServiceProvider), isA<WeatherApiService>());
+      expect(
+        container.read(weatherApiServiceProvider),
+        isA<WeatherApiService>(),
+      );
     });
 
     test('weatherRepositoryProvider provides a WeatherRepository', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      expect(container.read(weatherRepositoryProvider), isA<WeatherRepository>());
+      expect(
+        container.read(weatherRepositoryProvider),
+        isA<WeatherRepository>(),
+      );
     });
 
     test('weatherRepositoryProvider provides a WeatherRepositoryImpl', () {
@@ -59,7 +65,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      expect(container.read(getCurrentWeatherProvider), isA<GetCurrentWeather>());
+      expect(
+        container.read(getCurrentWeatherProvider),
+        isA<GetCurrentWeather>(),
+      );
     });
 
     test('getForecastProvider provides a GetForecast', () {
@@ -71,103 +80,71 @@ void main() {
   });
 
   group('weatherApiServiceProvider wiring', () {
-    test('uses the overridden apiClientProvider and AppEnvironment.apiKey',
-        () async {
-      final mockApiClient = MockApiClient();
-      final container = ProviderContainer(
-        overrides: [apiClientProvider.overrideWithValue(mockApiClient)],
-      );
-      addTearDown(container.dispose);
+    test(
+      'uses the overridden apiClientProvider and AppEnvironment.apiKey',
+      () async {
+        final mockApiClient = MockApiClient();
+        final container = ProviderContainer(
+          overrides: [apiClientProvider.overrideWithValue(mockApiClient)],
+        );
+        addTearDown(container.dispose);
 
-      when(() => mockApiClient.get<Map<String, dynamic>>(
+        when(
+          () => mockApiClient.get<Map<String, dynamic>>(
             any(),
             queryParameters: any(named: 'queryParameters'),
-          )).thenAnswer(
-        (_) async => Right(
-          Response<Map<String, dynamic>>(
-            requestOptions: RequestOptions(path: WeatherApiEndpoints.currentWeather),
-            statusCode: 200,
-            data: const {'temp': 21.5},
           ),
-        ),
-      );
+        ).thenAnswer(
+          (_) async => Right(
+            Response<Map<String, dynamic>>(
+              requestOptions: RequestOptions(
+                path: WeatherApiEndpoints.currentWeather,
+              ),
+              statusCode: 200,
+              data: const {'temp': 21.5},
+            ),
+          ),
+        );
 
-      final service = container.read(weatherApiServiceProvider);
-      final result =
-          await service.getCurrentWeather(latitude: 1, longitude: 2);
+        final service = container.read(weatherApiServiceProvider);
+        final result = await service.getCurrentWeather(
+          latitude: 1,
+          longitude: 2,
+        );
 
-      expect(result, {'temp': 21.5});
-      verify(() => mockApiClient.get<Map<String, dynamic>>(
+        expect(result, {'temp': 21.5});
+        verify(
+          () => mockApiClient.get<Map<String, dynamic>>(
             WeatherApiEndpoints.currentWeather,
             queryParameters: WeatherApiParams.coordinates(
               latitude: 1,
               longitude: 2,
               apiKey: AppEnvironment.apiKey,
             ),
-          )).called(1);
-    });
-  });
-
-  group('weatherDataSourceProvider wiring', () {
-    test('resolves to WeatherMockDataSource when isMockEnvironmentProvider is true',
-        () {
-      final container = ProviderContainer(
-        overrides: [isMockEnvironmentProvider.overrideWithValue(true)],
-      );
-      addTearDown(container.dispose);
-
-      expect(
-        container.read(weatherDataSourceProvider),
-        isA<WeatherMockDataSource>(),
-      );
-    });
-
-    test(
-      'resolves to the weatherApiServiceProvider instance when '
-      'isMockEnvironmentProvider is false',
-      () {
-        final mockApiService = MockWeatherApiService();
-        final container = ProviderContainer(
-          overrides: [
-            isMockEnvironmentProvider.overrideWithValue(false),
-            weatherApiServiceProvider.overrideWithValue(mockApiService),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        expect(container.read(weatherDataSourceProvider), same(mockApiService));
+          ),
+        ).called(1);
       },
     );
   });
 
-  group('weatherRepositoryProvider mock-mode wiring', () {
+  group('weatherDataSourceProvider wiring', () {
     test(
-      'reads the bundled mock JSON assets end-to-end when '
-      'isMockEnvironmentProvider is true',
-      () async {
+      'resolves to WeatherMockDataSource when isMockEnvironmentProvider is true',
+      () {
         final container = ProviderContainer(
           overrides: [isMockEnvironmentProvider.overrideWithValue(true)],
         );
         addTearDown(container.dispose);
 
-        final repository = container.read(weatherRepositoryProvider);
-        final result = await repository.getCurrentWeather(
-          latitude: 1,
-          longitude: 2,
-        );
-
-        expect(result.isRight(), isTrue);
-        result.fold(
-          (failure) => fail('expected Right, got $failure'),
-          (weather) => expect(weather.condition, WeatherCondition.rain),
+        expect(
+          container.read(weatherDataSourceProvider),
+          isA<WeatherMockDataSource>(),
         );
       },
     );
-  });
 
-  group('weatherRepositoryProvider wiring', () {
-    test('uses the overridden weatherApiServiceProvider when not in mock mode',
-        () async {
+    test('resolves to the weatherApiServiceProvider instance when '
+        'isMockEnvironmentProvider is false', () {
       final mockApiService = MockWeatherApiService();
       final container = ProviderContainer(
         overrides: [
@@ -177,11 +154,56 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      when(
-        () => mockApiService.getCurrentWeather(latitude: 1, longitude: 2),
-      ).thenAnswer((_) async => {
+      expect(container.read(weatherDataSourceProvider), same(mockApiService));
+    });
+  });
+
+  group('weatherRepositoryProvider mock-mode wiring', () {
+    test('reads the bundled mock JSON assets end-to-end when '
+        'isMockEnvironmentProvider is true', () async {
+      final container = ProviderContainer(
+        overrides: [isMockEnvironmentProvider.overrideWithValue(true)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(weatherRepositoryProvider);
+      final result = await repository.getCurrentWeather(
+        latitude: 1,
+        longitude: 2,
+      );
+
+      expect(result.isRight(), isTrue);
+      result.fold(
+        (failure) => fail('expected Right, got $failure'),
+        (weather) => expect(weather.condition, WeatherCondition.rain),
+      );
+    });
+  });
+
+  group('weatherRepositoryProvider wiring', () {
+    test(
+      'uses the overridden weatherApiServiceProvider when not in mock mode',
+      () async {
+        final mockApiService = MockWeatherApiService();
+        final container = ProviderContainer(
+          overrides: [
+            isMockEnvironmentProvider.overrideWithValue(false),
+            weatherApiServiceProvider.overrideWithValue(mockApiService),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        when(
+          () => mockApiService.getCurrentWeather(latitude: 1, longitude: 2),
+        ).thenAnswer(
+          (_) async => {
             'weather': [
-              {'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'},
+              {
+                'id': 800,
+                'main': 'Clear',
+                'description': 'clear sky',
+                'icon': '01d',
+              },
             ],
             'main': {
               'temp': 21.5,
@@ -191,28 +213,34 @@ void main() {
             },
             'wind': {'speed': 3.2},
             'dt': 1000,
-          });
+          },
+        );
 
-      final repository = container.read(weatherRepositoryProvider);
-      final result =
-          await repository.getCurrentWeather(latitude: 1, longitude: 2);
+        final repository = container.read(weatherRepositoryProvider);
+        final result = await repository.getCurrentWeather(
+          latitude: 1,
+          longitude: 2,
+        );
 
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (_) => fail('expected Right'),
-        (weather) => expect(weather.condition, WeatherCondition.clear),
-      );
-      verify(
-        () => mockApiService.getCurrentWeather(latitude: 1, longitude: 2),
-      ).called(1);
-    });
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (_) => fail('expected Right'),
+          (weather) => expect(weather.condition, WeatherCondition.clear),
+        );
+        verify(
+          () => mockApiService.getCurrentWeather(latitude: 1, longitude: 2),
+        ).called(1);
+      },
+    );
   });
 
   group('getCurrentWeatherProvider wiring', () {
     test('uses the overridden weatherRepositoryProvider', () async {
       final mockRepository = MockWeatherRepository();
       final container = ProviderContainer(
-        overrides: [weatherRepositoryProvider.overrideWithValue(mockRepository)],
+        overrides: [
+          weatherRepositoryProvider.overrideWithValue(mockRepository),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -245,7 +273,9 @@ void main() {
     test('uses the overridden weatherRepositoryProvider', () async {
       final mockRepository = MockWeatherRepository();
       final container = ProviderContainer(
-        overrides: [weatherRepositoryProvider.overrideWithValue(mockRepository)],
+        overrides: [
+          weatherRepositoryProvider.overrideWithValue(mockRepository),
+        ],
       );
       addTearDown(container.dispose);
 
