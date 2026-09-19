@@ -4,11 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
 import 'package:weather_now_flutter/di/providers.dart';
+import 'package:weather_now_flutter/domain/entities/app_settings.dart';
+import 'package:weather_now_flutter/domain/entities/app_theme_mode.dart';
 import 'package:weather_now_flutter/domain/entities/cached_current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/city_suggestion.dart';
 import 'package:weather_now_flutter/domain/entities/current_weather.dart';
+import 'package:weather_now_flutter/domain/entities/temperature_unit.dart';
 import 'package:weather_now_flutter/domain/entities/weather_condition.dart';
 import 'package:weather_now_flutter/domain/repositories/favorites_repository.dart';
+import 'package:weather_now_flutter/domain/repositories/settings_repository.dart';
 import 'package:weather_now_flutter/domain/repositories/weather_cache_repository.dart';
 import 'package:weather_now_flutter/domain/repositories/weather_repository.dart';
 import 'package:weather_now_flutter/presentation/providers/favorite_cached_weather_provider.dart';
@@ -20,6 +24,8 @@ class MockFavoritesRepository extends Mock implements FavoritesRepository {}
 class MockWeatherRepository extends Mock implements WeatherRepository {}
 
 class MockWeatherCacheRepository extends Mock implements WeatherCacheRepository {}
+
+class MockSettingsRepository extends Mock implements SettingsRepository {}
 
 void main() {
   late MockFavoritesRepository mockFavoritesRepository;
@@ -280,5 +286,53 @@ void main() {
     final refreshed = await container.read(favoriteCachedWeatherProvider(pune).future);
     expect(refreshed, isNotNull);
     expect(refreshed!.weather, weather);
+  });
+
+  test('does not fetch or cache anything when offline data is disabled',
+      () async {
+    when(
+      () => mockFavoritesRepository.getFavorites(),
+    ).thenAnswer((_) async => const Right([pune]));
+    final mockSettingsRepository = MockSettingsRepository();
+    when(() => mockSettingsRepository.getSettings()).thenAnswer(
+      (_) async => const Right(
+        AppSettings(
+          temperatureUnit: TemperatureUnit.celsius,
+          themeMode: AppThemeMode.system,
+          offlineDataEnabled: false,
+        ),
+      ),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        favoritesRepositoryProvider.overrideWithValue(mockFavoritesRepository),
+        weatherRepositoryProvider.overrideWithValue(mockWeatherRepository),
+        weatherCacheRepositoryProvider.overrideWithValue(mockWeatherCacheRepository),
+        settingsRepositoryProvider.overrideWithValue(mockSettingsRepository),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(favoritesProvider.future);
+
+    await container.read(favoritesSyncProvider.notifier).sync();
+
+    expect(container.read(favoritesSyncProvider).hasError, isTrue);
+    verifyNever(
+      () => mockWeatherRepository.getCurrentWeather(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'),
+      ),
+    );
+    verifyNever(
+      () => mockWeatherCacheRepository.saveCurrentWeather(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'),
+        weather: any(named: 'weather'),
+        fetchedAt: any(named: 'fetchedAt'),
+        cityName: any(named: 'cityName'),
+        country: any(named: 'country'),
+      ),
+    );
   });
 }

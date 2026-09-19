@@ -8,6 +8,7 @@ import 'active_city_provider.dart';
 import 'active_location_provider.dart';
 import 'current_location_provider.dart';
 import 'home_weather_exception.dart';
+import 'settings_provider.dart';
 import 'weather_freshness_provider.dart';
 
 /// Fetches the current weather for [activeLocationProvider] — a searched
@@ -49,15 +50,18 @@ class HomeWeatherNotifier extends AsyncNotifier<CurrentWeather> {
   ) async {
     final fetchedAt = DateTime.now();
     final activeCity = ref.read(activeCityProvider);
+    final settings = await ref.read(settingsProvider.future);
 
-    await ref.read(weatherCacheRepositoryProvider).saveCurrentWeather(
-          latitude: location.latitude,
-          longitude: location.longitude,
-          weather: weather,
-          fetchedAt: fetchedAt,
-          cityName: activeCity?.name,
-          country: activeCity?.country,
-        );
+    if (settings.offlineDataEnabled) {
+      await ref.read(weatherCacheRepositoryProvider).saveCurrentWeather(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            weather: weather,
+            fetchedAt: fetchedAt,
+            cityName: activeCity?.name,
+            country: activeCity?.country,
+          );
+    }
 
     ref
         .read(currentWeatherFreshnessProvider.notifier)
@@ -69,11 +73,19 @@ class HomeWeatherNotifier extends AsyncNotifier<CurrentWeather> {
   /// Falls back to the last cached current weather for [location] when the
   /// live fetch fails. Re-throws the original [failure] — not a cache
   /// error — when there's nothing usable cached, so "never fetched before
-  /// and offline" still surfaces as the normal error view.
+  /// and offline" still surfaces as the normal error view. Skips the
+  /// cache read entirely (surfacing [failure] the same way) when the user
+  /// has turned offline data off — falling back to a stored snapshot
+  /// would defeat that setting the same way writing one would.
   Future<CurrentWeather> _fallbackToCache(
     DeviceLocation location,
     Failure failure,
   ) async {
+    final settings = await ref.read(settingsProvider.future);
+    if (!settings.offlineDataEnabled) {
+      throw HomeWeatherFailureException(failure.message);
+    }
+
     final cached = await ref.read(weatherCacheRepositoryProvider).getCurrentWeather(
           latitude: location.latitude,
           longitude: location.longitude,

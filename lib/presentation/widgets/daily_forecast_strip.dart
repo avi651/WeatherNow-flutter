@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../domain/entities/temperature_unit.dart';
 import '../utils/daily_forecast_aggregator.dart';
+import '../utils/format_temperature.dart';
 import '../utils/weather_condition_icon.dart';
 
 const _weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -15,10 +17,19 @@ const _weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /// rather than fixed — more cards' worth of width are targeted as visible
 /// on wider screens, clamped to a sane min/max so cards never get
 /// illegibly small or absurdly large.
+///
+/// Takes [unit] as a plain parameter (rather than watching
+/// `temperatureUnitProvider` itself) so it stays a `StatelessWidget` and
+/// the provider is only watched once by the caller, not once per card.
 class DailyForecastStrip extends StatelessWidget {
-  const DailyForecastStrip({required this.days, super.key});
+  const DailyForecastStrip({
+    required this.days,
+    this.unit = TemperatureUnit.celsius,
+    super.key,
+  });
 
   final List<DailyForecastSummary> days;
+  final TemperatureUnit unit;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +68,7 @@ class DailyForecastStrip extends StatelessWidget {
                 isSelected: index == 0,
                 summary: day,
                 width: cardWidth,
+                unit: unit,
               );
             },
           ),
@@ -72,12 +84,14 @@ class _DayCard extends StatelessWidget {
     required this.isSelected,
     required this.summary,
     required this.width,
+    required this.unit,
   });
 
   final String label;
   final bool isSelected;
   final DailyForecastSummary summary;
   final double width;
+  final TemperatureUnit unit;
 
   @override
   Widget build(BuildContext context) {
@@ -132,14 +146,14 @@ class _DayCard extends StatelessWidget {
                 : theme.colorScheme.onSurfaceVariant,
           ),
           Text(
-            '${summary.maxTemperatureCelsius.round()}°',
+            formatTemperature(summary.maxTemperatureCelsius, unit),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isSelected ? onSelected : theme.colorScheme.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
-            '${summary.minTemperatureCelsius.round()}°',
+            formatTemperature(summary.minTemperatureCelsius, unit),
             style: theme.textTheme.bodySmall?.copyWith(
               color: isSelected
                   ? onSelected.withValues(alpha: 0.85)

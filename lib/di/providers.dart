@@ -12,6 +12,8 @@ import '../data/datasources/favorites_local_data_source.dart';
 import '../data/datasources/geocoding_api_service.dart';
 import '../data/datasources/geocoding_data_source.dart';
 import '../data/datasources/geocoding_mock_data_source.dart';
+import '../data/datasources/settings_hive_data_source.dart';
+import '../data/datasources/settings_local_data_source.dart';
 import '../data/datasources/weather_api_service.dart';
 import '../data/datasources/weather_cache_hive_data_source.dart';
 import '../data/datasources/weather_cache_local_data_source.dart';
@@ -20,18 +22,24 @@ import '../data/datasources/weather_mock_data_source.dart';
 import '../data/local/hive_boxes.dart';
 import '../data/repositories/favorites_repository_impl.dart';
 import '../data/repositories/geocoding_repository_impl.dart';
+import '../data/repositories/settings_repository_impl.dart';
 import '../data/repositories/weather_cache_repository_impl.dart';
 import '../data/repositories/weather_repository_impl.dart';
 import '../domain/repositories/favorites_repository.dart';
 import '../domain/repositories/geocoding_repository.dart';
+import '../domain/repositories/settings_repository.dart';
 import '../domain/repositories/weather_cache_repository.dart';
 import '../domain/repositories/weather_repository.dart';
 import '../domain/usecases/add_favorite.dart';
 import '../domain/usecases/get_current_weather.dart';
 import '../domain/usecases/get_favorites.dart';
 import '../domain/usecases/get_forecast.dart';
+import '../domain/usecases/get_settings.dart';
 import '../domain/usecases/remove_favorite.dart';
 import '../domain/usecases/reverse_geocode.dart';
+import '../domain/usecases/save_offline_data_enabled.dart';
+import '../domain/usecases/save_temperature_unit.dart';
+import '../domain/usecases/save_theme_mode.dart';
 import '../domain/usecases/search_cities.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -168,4 +176,37 @@ final weatherCacheRepositoryProvider = Provider<WeatherCacheRepository>((ref) {
   return WeatherCacheRepositoryImpl(
     localDataSource: ref.watch(weatherCacheLocalDataSourceProvider),
   );
+});
+
+/// The already-open Hive box settings are stored in — opened once at
+/// startup by [HiveBoxes.openAll] (or by tests' global setup), so it's
+/// always safe to read synchronously here.
+final settingsBoxProvider = Provider<Box<dynamic>>((ref) {
+  return Hive.box(HiveBoxes.settings);
+});
+
+final settingsLocalDataSourceProvider = Provider<SettingsLocalDataSource>((ref) {
+  return HiveSettingsDataSource(box: ref.watch(settingsBoxProvider));
+});
+
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  return SettingsRepositoryImpl(
+    localDataSource: ref.watch(settingsLocalDataSourceProvider),
+  );
+});
+
+final getSettingsProvider = Provider<GetSettings>((ref) {
+  return GetSettings(ref.watch(settingsRepositoryProvider));
+});
+
+final saveTemperatureUnitProvider = Provider<SaveTemperatureUnit>((ref) {
+  return SaveTemperatureUnit(ref.watch(settingsRepositoryProvider));
+});
+
+final saveThemeModeProvider = Provider<SaveThemeMode>((ref) {
+  return SaveThemeMode(ref.watch(settingsRepositoryProvider));
+});
+
+final saveOfflineDataEnabledProvider = Provider<SaveOfflineDataEnabled>((ref) {
+  return SaveOfflineDataEnabled(ref.watch(settingsRepositoryProvider));
 });

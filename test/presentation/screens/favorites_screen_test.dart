@@ -7,7 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:weather_now_flutter/core/error/cache_failures.dart';
 import 'package:weather_now_flutter/core/error/data_failures.dart';
+import 'package:weather_now_flutter/core/location/location_permission_status.dart';
+import 'package:weather_now_flutter/core/location/location_service.dart';
 import 'package:weather_now_flutter/di/providers.dart';
+import 'package:weather_now_flutter/domain/entities/app_settings.dart';
+import 'package:weather_now_flutter/domain/repositories/settings_repository.dart';
 import 'package:weather_now_flutter/domain/entities/cached_current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/city_suggestion.dart';
 import 'package:weather_now_flutter/domain/entities/current_weather.dart';
@@ -23,6 +27,10 @@ class MockWeatherCacheRepository extends Mock
     implements WeatherCacheRepository {}
 
 class MockWeatherRepository extends Mock implements WeatherRepository {}
+
+class MockSettingsRepository extends Mock implements SettingsRepository {}
+
+class MockLocationService extends Mock implements LocationService {}
 
 void main() {
   late MockFavoritesRepository mockFavoritesRepository;
@@ -181,40 +189,73 @@ void main() {
     verify(() => mockFavoritesRepository.removeFavorite(pune)).called(1);
   });
 
-  testWidgets('the three-dot menu offers to remove from favorites', (
-    tester,
-  ) async {
-    when(
-      () => mockFavoritesRepository.getFavorites(),
-    ).thenAnswer((_) async => const Right([pune]));
-    when(
-      () => mockFavoritesRepository.removeFavorite(pune),
-    ).thenAnswer((_) async => const Right(unit));
+  testWidgets(
+    'the three-dot menu offers to set as Home and remove from favorites',
+    (tester) async {
+      when(
+        () => mockFavoritesRepository.getFavorites(),
+      ).thenAnswer((_) async => const Right([pune]));
+      when(
+        () => mockFavoritesRepository.removeFavorite(pune),
+      ).thenAnswer((_) async => const Right(unit));
 
-    CitySuggestion? selected;
-    await tester.pumpWidget(
-      buildSubject(onCitySelected: (city) => selected = city),
-    );
-    await tester.pumpAndSettle();
+      CitySuggestion? selected;
+      await tester.pumpWidget(
+        buildSubject(onCitySelected: (city) => selected = city),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Remove from Favorites'), findsOneWidget);
-    await tester.pumpAndSettle();
-    expect(selected, pune);
+      expect(find.text('Set as Home location'), findsOneWidget);
+      expect(find.text('Remove from Favorites'), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove from Favorites'));
-    await tester.pump();
+      await tester.tap(find.text('Set as Home location'));
+      await tester.pumpAndSettle();
+      expect(selected, pune);
 
-    verify(() => mockFavoritesRepository.removeFavorite(pune)).called(1);
-  });
+      await tester.tap(
+        find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove from Favorites'));
+      await tester.pump();
+
+      verify(() => mockFavoritesRepository.removeFavorite(pune)).called(1);
+    },
+  );
+
+  testWidgets(
+    'the three-dot menu offers only Remove from Favorites when no '
+    'onCitySelected is given, since there is nowhere to "set as Home" to',
+    (tester) async {
+      when(
+        () => mockFavoritesRepository.getFavorites(),
+      ).thenAnswer((_) async => const Right([pune]));
+      when(
+        () => mockFavoritesRepository.removeFavorite(pune),
+      ).thenAnswer((_) async => const Right(unit));
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(Key('favoriteMenu_${pune.name}_${pune.country}')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Set as Home location'), findsNothing);
+      expect(find.text('Remove from Favorites'), findsOneWidget);
+
+      await tester.tap(find.text('Remove from Favorites'));
+      await tester.pump();
+
+      verify(() => mockFavoritesRepository.removeFavorite(pune)).called(1);
+    },
+  );
 
   testWidgets('shows the cached weather for a favorite when available', (
     tester,
@@ -504,6 +545,62 @@ void main() {
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Favorites'), findsNWidgets(2));
       expect(find.text('Settings'), findsOneWidget);
+    });
+
+    testWidgets('has no back button and navigates between tabs', (tester) async {
+      when(
+        () => mockFavoritesRepository.getFavorites(),
+      ).thenAnswer((_) async => const Right([]));
+      final mockSettingsRepository = MockSettingsRepository();
+      final mockLocationService = MockLocationService();
+      when(() => mockSettingsRepository.getSettings())
+          .thenAnswer((_) async => const Right(AppSettings.defaults));
+      when(() => mockLocationService.checkPermissionStatus())
+          .thenAnswer((_) async => LocationPermissionStatus.granted);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            favoritesRepositoryProvider.overrideWithValue(
+              mockFavoritesRepository,
+            ),
+            weatherCacheRepositoryProvider.overrideWithValue(
+              mockWeatherCacheRepository,
+            ),
+            weatherRepositoryProvider.overrideWithValue(mockWeatherRepository),
+            settingsRepositoryProvider.overrideWithValue(
+              mockSettingsRepository,
+            ),
+            locationServiceProvider.overrideWithValue(mockLocationService),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                ),
+                child: const Text('placeholder-home'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('placeholder-home'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BackButton), findsNothing);
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+      expect(find.byType(NavigationBar), findsOneWidget);
+
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      expect(find.text('Units'), findsOneWidget);
+      expect(find.byType(BackButton), findsNothing);
+
+      // Home from Settings goes straight to the root, not back to Favorites.
+      await tester.tap(find.text('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('placeholder-home'), findsOneWidget);
     });
 
     testWidgets('tapping Home in the bottom nav pops back', (tester) async {

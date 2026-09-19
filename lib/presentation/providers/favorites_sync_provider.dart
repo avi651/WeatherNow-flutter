@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../di/providers.dart';
 import 'favorite_cached_weather_provider.dart';
 import 'favorite_provider.dart';
+import 'settings_provider.dart';
 
 /// Re-fetches live weather for every saved favorite and re-caches it, for
 /// the Favorites screen's "Sync Now" button — reusing the same
@@ -26,6 +27,11 @@ class FavoritesSyncNotifier extends AsyncNotifier<void> {
   }
 
   Future<void> _syncAll() async {
+    final settings = await ref.read(settingsProvider.future);
+    if (!settings.offlineDataEnabled) {
+      throw StateError('Offline data is turned off in Settings.');
+    }
+
     final favorites = ref.read(favoritesProvider).value ?? const [];
     if (favorites.isEmpty) return;
 

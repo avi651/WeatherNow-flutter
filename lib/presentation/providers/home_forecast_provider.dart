@@ -8,6 +8,7 @@ import 'active_city_provider.dart';
 import 'active_location_provider.dart';
 import 'current_location_provider.dart';
 import 'home_weather_exception.dart';
+import 'settings_provider.dart';
 import 'weather_freshness_provider.dart';
 
 /// Fetches the forecast for [activeLocationProvider] — a searched city if
@@ -40,15 +41,18 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
   ) async {
     final fetchedAt = DateTime.now();
     final activeCity = ref.read(activeCityProvider);
+    final settings = await ref.read(settingsProvider.future);
 
-    await ref.read(weatherCacheRepositoryProvider).saveForecast(
-          latitude: location.latitude,
-          longitude: location.longitude,
-          forecast: forecast,
-          fetchedAt: fetchedAt,
-          cityName: activeCity?.name,
-          country: activeCity?.country,
-        );
+    if (settings.offlineDataEnabled) {
+      await ref.read(weatherCacheRepositoryProvider).saveForecast(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            forecast: forecast,
+            fetchedAt: fetchedAt,
+            cityName: activeCity?.name,
+            country: activeCity?.country,
+          );
+    }
 
     ref
         .read(forecastFreshnessProvider.notifier)
@@ -59,11 +63,17 @@ class HomeForecastNotifier extends AsyncNotifier<Forecast> {
 
   /// Mirrors [HomeWeatherNotifier._fallbackToCache]: falls back to the last
   /// cached forecast for [location], or re-throws the original [failure]
-  /// when there's nothing usable cached.
+  /// when there's nothing usable cached — or when offline data is off,
+  /// without even reading the cache.
   Future<Forecast> _fallbackToCache(
     DeviceLocation location,
     Failure failure,
   ) async {
+    final settings = await ref.read(settingsProvider.future);
+    if (!settings.offlineDataEnabled) {
+      throw HomeWeatherFailureException(failure.message);
+    }
+
     final cached = await ref.read(weatherCacheRepositoryProvider).getForecast(
           latitude: location.latitude,
           longitude: location.longitude,

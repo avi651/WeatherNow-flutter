@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:weather_now_flutter/domain/entities/current_weather.dart';
 import 'package:weather_now_flutter/domain/entities/weather_condition.dart';
@@ -17,13 +18,15 @@ void main() {
   );
 
   Widget buildSubject({bool isFavorite = false, VoidCallback? onToggle}) {
-    return MaterialApp(
-      home: CurrentWeatherHeroCard(
-        weather: weather,
-        locationName: 'Bengaluru',
-        country: 'India',
-        isFavorite: isFavorite,
-        onFavoriteToggle: onToggle ?? () {},
+    return ProviderScope(
+      child: MaterialApp(
+        home: CurrentWeatherHeroCard(
+          weather: weather,
+          locationName: 'Bengaluru',
+          country: 'India',
+          isFavorite: isFavorite,
+          onFavoriteToggle: onToggle ?? () {},
+        ),
       ),
     );
   }

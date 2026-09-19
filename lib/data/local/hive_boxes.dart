@@ -12,8 +12,9 @@ class HiveBoxes {
   static const favorites = 'favorites';
   static const currentWeatherCache = 'current_weather_cache';
   static const forecastCache = 'forecast_cache';
+  static const settings = 'settings';
 
-  static const _all = [favorites, currentWeatherCache, forecastCache];
+  static const _all = [favorites, currentWeatherCache, forecastCache, settings];
 
   /// Opens every box the app needs. Safe to call once at startup — Hive
   /// itself (`Hive.init`/`Hive.initFlutter`) must already have run.

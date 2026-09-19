@@ -5,6 +5,8 @@ import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/cached_current_weather.dart';
 import '../../domain/entities/city_suggestion.dart';
 import '../providers/favorite_cached_weather_provider.dart';
+import '../providers/temperature_unit_provider.dart';
+import '../utils/format_temperature.dart';
 import '../utils/format_time.dart';
 import '../utils/weather_condition_icon.dart';
 import 'favorite_star_button.dart';
@@ -31,6 +33,7 @@ class FavoriteCityTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cachedWeather = ref.watch(favoriteCachedWeatherProvider(city));
+    final unit = ref.watch(temperatureUnitProvider);
     final subtitle = (city.state != null && city.state!.isNotEmpty)
         ? city.state!
         : city.country;
@@ -95,9 +98,13 @@ class FavoriteCityTile extends ConsumerWidget {
                     itemBuilder: (context) => [
                       if (onTap != null)
                         const PopupMenuItem(
-                          value: _FavoriteTileAction.remove,
-                          child: Text('Remove from Favorites'),
+                          value: _FavoriteTileAction.setAsHome,
+                          child: Text('Set as Home location'),
                         ),
+                      const PopupMenuItem(
+                        value: _FavoriteTileAction.remove,
+                        child: Text('Remove from Favorites'),
+                      ),
                     ],
                   ),
                 ],
@@ -115,7 +122,7 @@ class FavoriteCityTile extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${cached.weather.temperatureCelsius.round()}°',
+                            formatTemperature(cached.weather.temperatureCelsius, unit),
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),

@@ -7,6 +7,7 @@ import '../../domain/entities/city_suggestion.dart';
 import '../providers/favorite_cached_weather_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/favorites_sync_provider.dart';
+import '../navigation/tab_navigation.dart';
 import '../utils/format_time.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/favorite_city_tile.dart';
@@ -29,7 +30,10 @@ class FavoritesScreen extends ConsumerWidget {
     final favoritesState = ref.watch(favoritesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Favorites')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Favorites'),
+      ),
       body: favoritesState.when(
         loading: () => const WeatherLoadingView(),
         error: (error, _) => WeatherErrorView(
@@ -100,9 +104,12 @@ class FavoritesScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 1,
-        onDestinationSelected: (index) {
-          if (index == 0) Navigator.of(context).pop();
-        },
+        onDestinationSelected: (index) => navigateToTab(
+          context,
+          ref,
+          from: favoritesTabIndex,
+          to: index,
+        ),
       ),
     );
   }

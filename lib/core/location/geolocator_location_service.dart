@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../error/failures.dart';
 import '../error/location_failures.dart';
 import 'device_location.dart';
+import 'location_permission_status.dart';
 import 'location_service.dart';
 
 /// Resolves the device's current location via the `geolocator` plugin,
@@ -62,5 +63,53 @@ class GeolocatorLocationService implements LocationService {
         LocationUnavailableFailure('Could not determine current location: $error'),
       );
     }
+  }
+
+  @override
+  Future<LocationPermissionStatus> checkPermissionStatus() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return LocationPermissionStatus.serviceDisabled;
+
+    final permission = await Geolocator.checkPermission();
+    return switch (permission) {
+      LocationPermission.always ||
+      LocationPermission.whileInUse =>
+        LocationPermissionStatus.granted,
+      LocationPermission.deniedForever => LocationPermissionStatus.deniedForever,
+      LocationPermission.denied ||
+      LocationPermission.unableToDetermine =>
+        LocationPermissionStatus.denied,
+    };
+  }
+
+  @override
+  Future<LocationPermissionStatus> requestPermission() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return LocationPermissionStatus.serviceDisabled;
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    return switch (permission) {
+      LocationPermission.always ||
+      LocationPermission.whileInUse =>
+        LocationPermissionStatus.granted,
+      LocationPermission.deniedForever => LocationPermissionStatus.deniedForever,
+      LocationPermission.denied ||
+      LocationPermission.unableToDetermine =>
+        LocationPermissionStatus.denied,
+    };
+  }
+
+  @override
+  Future<void> openLocationSettings() async {
+    await Geolocator.openLocationSettings();
+  }
+
+  @override
+  Future<void> openAppSettings() async {
+    await Geolocator.openAppSettings();
   }
 }

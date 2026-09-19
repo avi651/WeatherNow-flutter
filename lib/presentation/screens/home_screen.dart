@@ -8,8 +8,9 @@ import '../providers/favorite_provider.dart';
 import '../providers/home_forecast_provider.dart';
 import '../providers/home_weather_exception.dart';
 import '../providers/home_weather_provider.dart';
-import '../providers/selected_city_provider.dart';
+import '../providers/temperature_unit_provider.dart';
 import '../providers/weather_freshness_provider.dart';
+import '../navigation/tab_navigation.dart';
 import '../utils/daily_forecast_aggregator.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/current_weather_hero_card.dart';
@@ -20,7 +21,6 @@ import '../widgets/weather_error_view.dart';
 import '../widgets/weather_loading_view.dart';
 import '../widgets/weather_search_bar.dart';
 import '../widgets/weather_stats_row.dart';
-import 'favorites_screen.dart';
 
 /// The Home screen: current weather and a 5-day forecast for the
 /// (currently placeholder) location, with loading, success, and
@@ -34,6 +34,7 @@ class HomeScreen extends ConsumerWidget {
     final forecastState = ref.watch(homeForecastProvider);
     final isFavorite = ref.watch(isFavoriteProvider);
     final activeCity = ref.watch(activeCityProvider);
+    final temperatureUnit = ref.watch(temperatureUnitProvider);
     // Current weather and forecast are fetched independently and can each
     // fall back to cache on their own, so their freshness is tracked
     // separately too — this surfaces the banner whenever either one is
@@ -141,7 +142,7 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      DailyForecastStrip(days: dailySummaries),
+                      DailyForecastStrip(days: dailySummaries, unit: temperatureUnit),
                     ],
                   ),
                 ),
@@ -178,21 +179,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Home (index 0) is already showing; Favorites (1) pushes
-  /// [FavoritesScreen], selecting a tapped favorite back here as the
-  /// active city. Settings (2) has no screen yet.
+  /// Home is already showing; Favorites and Settings are pushed over it
+  /// (see [navigateToTab]).
   void _onDestinationSelected(BuildContext context, WidgetRef ref, int index) {
-    if (index != 1) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FavoritesScreen(
-          onCitySelected: (city) {
-            ref.read(selectedCityProvider.notifier).select(city);
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-    );
+    navigateToTab(context, ref, from: homeTabIndex, to: index);
   }
 }

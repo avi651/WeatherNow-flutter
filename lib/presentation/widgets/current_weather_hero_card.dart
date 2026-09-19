@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/current_weather.dart';
+import '../providers/temperature_unit_provider.dart';
+import '../utils/format_temperature.dart';
 import '../utils/weather_condition_icon.dart';
 import 'favorite_star_button.dart';
 
 /// The main current-weather display: location, temperature, condition,
 /// and a favorite toggle, over a gradient background evoking the sky.
-class CurrentWeatherHeroCard extends StatelessWidget {
+class CurrentWeatherHeroCard extends ConsumerWidget {
   const CurrentWeatherHeroCard({
     required this.weather,
     required this.locationName,
@@ -25,8 +28,9 @@ class CurrentWeatherHeroCard extends StatelessWidget {
   final VoidCallback onFavoriteToggle;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final unit = ref.watch(temperatureUnitProvider);
     final sizeClass =
         AppBreakpoints.classify(MediaQuery.sizeOf(context).width);
     final padding = switch (sizeClass) {
@@ -133,7 +137,7 @@ class CurrentWeatherHeroCard extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      '${weather.temperatureCelsius.round()}°',
+                      formatTemperature(weather.temperatureCelsius, unit),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       // Tight leading so the glyphs' own bounds — not the
@@ -191,7 +195,7 @@ class CurrentWeatherHeroCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.xs),
                   Flexible(
                     child: Text(
-                      'Feels like ${weather.feelsLikeCelsius.round()}°',
+                      'Feels like ${formatTemperature(weather.feelsLikeCelsius, unit)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
