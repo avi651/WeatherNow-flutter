@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../di/providers.dart';
 import 'favorite_cached_weather_provider.dart';
@@ -29,7 +30,7 @@ class FavoritesSyncNotifier extends AsyncNotifier<void> {
   Future<void> _syncAll() async {
     final settings = await ref.read(settingsProvider.future);
     if (!settings.offlineDataEnabled) {
-      throw StateError('Offline data is turned off in Settings.');
+      throw StateError(AppStrings.offlineDataTurnedOff);
     }
 
     final favorites = ref.read(favoritesProvider).value ?? const [];
@@ -64,7 +65,7 @@ class FavoritesSyncNotifier extends AsyncNotifier<void> {
     ref.invalidate(favoriteCachedWeatherProvider);
 
     if (failureCount == favorites.length) {
-      throw StateError('Could not sync favorites — check your connection.');
+      throw StateError(AppStrings.favoritesSyncFailed);
     }
   }
 }

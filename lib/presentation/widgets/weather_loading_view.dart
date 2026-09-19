@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_spacing.dart';
 
@@ -24,7 +25,7 @@ class WeatherLoadingView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Loading weather…',
+            AppStrings.loadingWeather,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

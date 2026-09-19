@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../error/failures.dart';
 import '../error/network_failures.dart';
@@ -13,22 +14,20 @@ class DioExceptionMapper {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.transformTimeout:
-        return const TimeoutFailure('The request timed out');
+        return const TimeoutFailure(AppStrings.requestTimedOut);
 
       case DioExceptionType.cancel:
-        return const CancelledFailure('The request was cancelled');
+        return const CancelledFailure(AppStrings.requestCancelled);
 
       case DioExceptionType.connectionError:
-        return const NetworkFailure('No internet connection');
+        return const NetworkFailure(AppStrings.noInternet);
 
       case DioExceptionType.badResponse:
         return _mapBadResponse(error.response?.statusCode);
 
       case DioExceptionType.badCertificate:
       case DioExceptionType.unknown:
-        return UnknownFailure(
-          error.message ?? 'An unknown network error occurred',
-        );
+        return UnknownFailure(error.message ?? AppStrings.unknownNetworkError);
     }
   }
 
@@ -47,14 +46,13 @@ class DioExceptionMapper {
   ServerFailure _mapBadResponse(int? statusCode) {
     final String message;
     if (statusCode == 401 || statusCode == 403) {
-      message = 'Invalid or unauthorized API key';
+      message = AppStrings.invalidApiKey;
     } else if (statusCode == 429) {
-      message =
-          'Too many requests — rate limit exceeded, please try again later';
+      message = AppStrings.rateLimitExceeded;
     } else if (statusCode != null && statusCode >= 500 && statusCode <= 599) {
-      message = 'The weather service is temporarily unavailable';
+      message = AppStrings.weatherServiceUnavailable;
     } else {
-      message = 'The server returned an error';
+      message = AppStrings.serverError;
     }
 
     return ServerFailure(message, statusCode: statusCode);

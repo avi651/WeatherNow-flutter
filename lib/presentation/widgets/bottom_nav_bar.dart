@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 /// Bottom navigation switching between Home, Favorites, and Settings.
 ///
@@ -39,17 +40,17 @@ class BottomNavBar extends StatelessWidget {
             const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
-              label: 'Home',
+              label: AppStrings.navHome,
             ),
             const NavigationDestination(
               icon: Icon(Icons.star_border),
               selectedIcon: Icon(Icons.star),
-              label: 'Favorites',
+              label: AppStrings.navFavorites,
             ),
             const NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
-              label: 'Settings',
+              label: AppStrings.navSettings,
             ),
           ],
         ),

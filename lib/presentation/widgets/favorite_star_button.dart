@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 /// A star-icon toggle reflecting and controlling favorite status.
 class FavoriteStarButton extends StatelessWidget {
@@ -19,7 +20,9 @@ class FavoriteStarButton extends StatelessWidget {
       onPressed: onPressed,
       icon: Icon(isFavorite ? Icons.star : Icons.star_border),
       color: isFavorite ? Colors.amber : theme.colorScheme.onSurfaceVariant,
-      tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+      tooltip: isFavorite
+          ? AppStrings.removeFromFavorites
+          : AppStrings.addToFavorites,
     );
   }
 }

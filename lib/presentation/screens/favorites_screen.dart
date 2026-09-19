@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
@@ -32,12 +33,12 @@ class FavoritesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Favorites'),
+        title: const Text(AppStrings.favoritesTitle),
       ),
       body: favoritesState.when(
         loading: () => const WeatherLoadingView(),
         error: (error, _) => WeatherErrorView(
-          message: 'Failed to load favorites.',
+          message: AppStrings.favoritesLoadFailed,
           onRetry: () => ref.invalidate(favoritesProvider),
         ),
         data: (favorites) {
@@ -165,7 +166,7 @@ class _OfflineAccessSection extends ConsumerWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Offline Access',
+                  AppStrings.offlineAccess,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -192,15 +193,17 @@ class _OfflineAccessSection extends ConsumerWidget {
                         ),
                       )
                     : const Icon(Icons.sync, size: 16),
-                label: Text(isSyncing ? 'Syncing…' : 'Sync Now'),
+                label: Text(
+                  isSyncing ? AppStrings.syncing : AppStrings.syncNow,
+                ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             lastUpdated == null
-                ? 'Your favorites will be cached here for offline access.'
-                : 'Last updated ${formatCacheTime(context, lastUpdated)}',
+                ? AppStrings.favoritesCacheHint
+                : AppStrings.lastUpdated(formatCacheTime(context, lastUpdated)),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -214,7 +217,7 @@ class _OfflineAccessSection extends ConsumerWidget {
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
-                    "You're offline — showing your last saved weather.",
+                    AppStrings.offlineShowingSavedWeather,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.error,
                     ),
@@ -248,10 +251,13 @@ class _EmptyFavorites extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('No favorite cities yet', style: theme.textTheme.titleMedium),
+            Text(
+              AppStrings.noFavoritesTitle,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Tap the star on a city\'s weather to save it here.',
+              AppStrings.noFavoritesHint,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,

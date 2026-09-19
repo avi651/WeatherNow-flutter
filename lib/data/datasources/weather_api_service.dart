@@ -1,3 +1,4 @@
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 import '../../core/error/network_failures.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/api_client.dart';
@@ -50,7 +51,7 @@ class WeatherApiService implements WeatherDataSource {
       final data = response.data;
 
       if (data == null) {
-        throw WeatherApiException('Empty response from weather service');
+        throw WeatherApiException(AppStrings.emptyWeatherResponse);
       }
 
       return data;

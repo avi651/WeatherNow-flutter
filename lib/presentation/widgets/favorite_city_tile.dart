@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/cached_current_weather.dart';
@@ -82,7 +83,7 @@ class FavoriteCityTile extends ConsumerWidget {
                   ),
                   PopupMenuButton<_FavoriteTileAction>(
                     key: Key('favoriteMenu_${city.name}_${city.country}'),
-                    tooltip: 'More actions',
+                    tooltip: AppStrings.moreActions,
                     icon: Icon(
                       Icons.more_vert,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -99,11 +100,11 @@ class FavoriteCityTile extends ConsumerWidget {
                       if (onTap != null)
                         const PopupMenuItem(
                           value: _FavoriteTileAction.setAsHome,
-                          child: Text('Set as Home location'),
+                          child: Text(AppStrings.setAsHomeLocation),
                         ),
                       const PopupMenuItem(
                         value: _FavoriteTileAction.remove,
-                        child: Text('Remove from Favorites'),
+                        child: Text(AppStrings.removeFromFavoritesMenu),
                       ),
                     ],
                   ),
@@ -113,7 +114,7 @@ class FavoriteCityTile extends ConsumerWidget {
               cachedWeather.when(
                 data: (cached) => cached == null
                     ? Text(
-                        'No cached weather yet',
+                        AppStrings.noCachedWeatherYet,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -142,7 +143,9 @@ class FavoriteCityTile extends ConsumerWidget {
                                   style: theme.textTheme.bodyMedium,
                                 ),
                                 Text(
-                                  'cached ${formatCacheTime(context, cached.fetchedAt)}',
+                                  AppStrings.cachedAt(
+                                    formatCacheTime(context, cached.fetchedAt),
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -166,7 +169,7 @@ class FavoriteCityTile extends ConsumerWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
-                      'Loading weather…',
+                      AppStrings.loadingWeather,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -174,7 +177,7 @@ class FavoriteCityTile extends ConsumerWidget {
                   ],
                 ),
                 error: (_, _) => Text(
-                  'No cached weather yet',
+                  AppStrings.noCachedWeatherYet,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

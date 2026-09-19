@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/location/device_location.dart';
 import '../../core/theme/app_spacing.dart';
@@ -157,7 +158,7 @@ class _WeatherSearchBarState extends ConsumerState<WeatherSearchBar> {
       final error = next.error;
       final message = error is HomeWeatherFailureException
           ? error.message
-          : 'Could not get your current location.';
+          : AppStrings.currentLocationError;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));

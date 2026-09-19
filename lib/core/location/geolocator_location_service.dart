@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../error/failures.dart';
 import '../error/location_failures.dart';
@@ -29,9 +30,7 @@ class GeolocatorLocationService implements LocationService {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return const Left(
-        LocationServiceDisabledFailure(
-          'Location services are turned off. Please enable them to see weather for your location.',
-        ),
+        LocationServiceDisabledFailure(AppStrings.locationServicesDisabled),
       );
     }
 
@@ -40,7 +39,7 @@ class GeolocatorLocationService implements LocationService {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         return const Left(
-          LocationPermissionDeniedFailure('Location permission was denied.'),
+          LocationPermissionDeniedFailure(AppStrings.locationPermissionDenied),
         );
       }
     }
@@ -48,7 +47,7 @@ class GeolocatorLocationService implements LocationService {
     if (permission == LocationPermission.deniedForever) {
       return const Left(
         LocationPermissionDeniedForeverFailure(
-          'Location permission is permanently denied. Enable it from system settings.',
+          AppStrings.locationPermissionDeniedForever,
         ),
       );
     }
@@ -71,10 +70,7 @@ class GeolocatorLocationService implements LocationService {
       );
     } on TimeoutException {
       return const Left(
-        LocationUnavailableFailure(
-          'Timed out while finding your location. Make sure location is '
-          'available on this device, or search for a city instead.',
-        ),
+        LocationUnavailableFailure(AppStrings.locationTimedOut),
       );
     } catch (error) {
       return Left(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
@@ -8,21 +9,6 @@ import '../utils/day_period_grouper.dart';
 import '../utils/format_temperature.dart';
 import '../utils/weather_condition_icon.dart';
 import '../widgets/weather_detail_tile.dart';
-
-const _monthLabels = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 /// Detail view for one day of the forecast, broken into morning,
 /// afternoon and evening. Built purely from the [summary] the Home screen
@@ -47,7 +33,8 @@ class ForecastDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final periods = DayPeriodGrouper.group(summary.entries);
-    final date = '${_monthLabels[summary.date.month - 1]} ${summary.date.day}';
+    final date =
+        '${AppStrings.monthLabels[summary.date.month - 1]} ${summary.date.day}';
 
     return Scaffold(
       appBar: AppBar(title: Text('$label, $date')),
@@ -69,8 +56,10 @@ class ForecastDetailScreen extends StatelessWidget {
                     ),
                   ),
                 Text(
-                  'High ${formatTemperature(summary.maxTemperatureCelsius, unit)}'
-                  ' · Low ${formatTemperature(summary.minTemperatureCelsius, unit)}',
+                  AppStrings.highLow(
+                    formatTemperature(summary.maxTemperatureCelsius, unit),
+                    formatTemperature(summary.minTemperatureCelsius, unit),
+                  ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -79,11 +68,7 @@ class ForecastDetailScreen extends StatelessWidget {
                 if (periods.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(AppSpacing.lg),
-                    child: Center(
-                      child: Text(
-                        'No detailed forecast available for this day.',
-                      ),
-                    ),
+                    child: Center(child: Text(AppStrings.noDetailedForecast)),
                   ),
                 for (final period in periods) ...[
                   _PeriodCard(period: period, unit: unit),
@@ -159,17 +144,17 @@ class _PeriodCard extends StatelessWidget {
             children: [
               WeatherDetailTile(
                 icon: Icons.thermostat,
-                label: 'Feels like',
+                label: AppStrings.feelsLike,
                 value: formatTemperature(period.averageFeelsLikeCelsius, unit),
               ),
               WeatherDetailTile(
                 icon: Icons.water_drop_outlined,
-                label: 'Humidity',
+                label: AppStrings.humidity,
                 value: '${period.averageHumidityPercent}%',
               ),
               WeatherDetailTile(
                 icon: Icons.umbrella_outlined,
-                label: 'Rain',
+                label: AppStrings.rain,
                 value: '${(period.maxPrecipitationProbability * 100).round()}%',
               ),
             ],

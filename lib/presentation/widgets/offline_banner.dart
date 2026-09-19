@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../utils/format_time.dart';
@@ -35,7 +36,7 @@ class OfflineBanner extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              "You're offline — showing data from "
+              '${AppStrings.offlineBannerPrefix}'
               '${formatCacheTime(context, fetchedAt)}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onErrorContainer,

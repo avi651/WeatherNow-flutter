@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/city_search_provider.dart';
 import 'animated_search_placeholder.dart';
-import 'search_placeholder_phrases.dart';
 
 /// The text field half of the search bar: a plain `TextField` with a
 /// rotating [AnimatedSearchPlaceholder] behind it (shown only while
@@ -88,7 +88,7 @@ class _SearchInputFieldState extends ConsumerState<SearchInputField> {
               if (isEmpty)
                 const IgnorePointer(
                   child: AnimatedSearchPlaceholder(
-                    phrases: kSearchPlaceholderPhrases,
+                    phrases: AppStrings.searchPlaceholderPhrases,
                   ),
                 ),
               TextField(
@@ -117,7 +117,7 @@ class _SearchInputFieldState extends ConsumerState<SearchInputField> {
             iconSize: 18,
             visualDensity: VisualDensity.compact,
             color: theme.colorScheme.onSurfaceVariant,
-            tooltip: 'Clear search',
+            tooltip: AppStrings.clearSearch,
           ),
       ],
     );

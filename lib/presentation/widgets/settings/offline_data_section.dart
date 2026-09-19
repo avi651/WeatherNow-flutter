@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../../domain/entities/app_settings.dart';
 import '../../providers/settings_provider.dart';
@@ -19,16 +20,14 @@ class OfflineDataSection extends ConsumerWidget {
         AppSettings.defaults.offlineDataEnabled;
 
     return SettingsSectionCard(
-      title: 'Offline Data',
+      title: AppStrings.offlineData,
       icon: Icons.cloud_download_outlined,
       children: [
         SwitchListTile(
           key: const Key('offlineDataSwitch'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('Store weather for offline access'),
-          subtitle: const Text(
-            'Keep the last fetched weather available without a connection.',
-          ),
+          title: const Text(AppStrings.offlineDataToggleTitle),
+          subtitle: const Text(AppStrings.offlineDataToggleSubtitle),
           value: enabled,
           onChanged: (value) {
             ref.read(settingsProvider.notifier).setOfflineDataEnabled(value);

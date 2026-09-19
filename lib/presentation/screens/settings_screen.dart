@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
@@ -23,7 +24,7 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Settings'),
+        title: const Text(AppStrings.settingsTitle),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

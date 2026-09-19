@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../providers/app_version_provider.dart';
 import 'settings_section_card.dart';
@@ -13,14 +14,14 @@ class AboutSection extends ConsumerWidget {
     final versionAsync = ref.watch(appVersionProvider);
 
     return SettingsSectionCard(
-      title: 'About',
+      title: AppStrings.about,
       icon: Icons.info_outline,
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('App Version'),
+          title: const Text(AppStrings.appVersion),
           trailing: Text(
-            versionAsync.value ?? '—',
+            versionAsync.value ?? AppStrings.unknownValue,
             key: const Key('appVersionValue'),
           ),
         ),

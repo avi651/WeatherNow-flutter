@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../domain/entities/city_suggestion.dart';
@@ -66,7 +67,7 @@ class CitySuggestionsList extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         child: Text(
-          'No cities found for "${state.query.trim()}"',
+          AppStrings.noCitiesFound(state.query.trim()),
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../domain/entities/current_weather.dart';
@@ -36,17 +37,17 @@ class WeatherStatsRow extends StatelessWidget {
         children: [
           WeatherDetailTile(
             icon: Icons.water_drop,
-            label: 'Humidity',
+            label: AppStrings.humidity,
             value: '${weather.humidityPercent}%',
           ),
           WeatherDetailTile(
             icon: Icons.air,
-            label: 'Wind',
+            label: AppStrings.wind,
             value: '${weather.windSpeedMetersPerSecond.toStringAsFixed(1)} m/s',
           ),
           WeatherDetailTile(
             icon: Icons.speed,
-            label: 'Pressure',
+            label: AppStrings.pressure,
             value: '${weather.pressureHpa} hPa',
           ),
         ],

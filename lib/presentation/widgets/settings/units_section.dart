@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../../domain/entities/app_settings.dart';
 import '../../../domain/entities/temperature_unit.dart';
@@ -18,7 +19,7 @@ class UnitsSection extends ConsumerWidget {
         AppSettings.defaults.temperatureUnit;
 
     return SettingsSectionCard(
-      title: 'Units',
+      title: AppStrings.units,
       icon: Icons.thermostat_outlined,
       children: [
         SegmentedButton<TemperatureUnit>(
@@ -26,11 +27,11 @@ class UnitsSection extends ConsumerWidget {
           segments: const [
             ButtonSegment(
               value: TemperatureUnit.celsius,
-              label: Text('Celsius (°C)'),
+              label: Text(AppStrings.celsius),
             ),
             ButtonSegment(
               value: TemperatureUnit.fahrenheit,
-              label: Text('Fahrenheit (°F)'),
+              label: Text(AppStrings.fahrenheit),
             ),
           ],
           selected: {unit},

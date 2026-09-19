@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../../domain/entities/app_settings.dart';
 import '../../../domain/entities/app_theme_mode.dart';
@@ -19,7 +20,7 @@ class AppearanceSection extends ConsumerWidget {
         AppSettings.defaults.themeMode;
 
     return SettingsSectionCard(
-      title: 'Appearance',
+      title: AppStrings.appearance,
       icon: Icons.palette_outlined,
       children: [
         SegmentedButton<AppThemeMode>(
@@ -27,17 +28,17 @@ class AppearanceSection extends ConsumerWidget {
           segments: const [
             ButtonSegment(
               value: AppThemeMode.system,
-              label: Text('System'),
+              label: Text(AppStrings.themeSystem),
               icon: Icon(Icons.brightness_auto, size: 16),
             ),
             ButtonSegment(
               value: AppThemeMode.light,
-              label: Text('Light'),
+              label: Text(AppStrings.themeLight),
               icon: Icon(Icons.light_mode_outlined, size: 16),
             ),
             ButtonSegment(
               value: AppThemeMode.dark,
-              label: Text('Dark'),
+              label: Text(AppStrings.themeDark),
               icon: Icon(Icons.dark_mode_outlined, size: 16),
             ),
           ],

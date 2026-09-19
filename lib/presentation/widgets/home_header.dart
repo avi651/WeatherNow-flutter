@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_spacing.dart';
 
@@ -24,9 +25,9 @@ class HomeHeader extends StatelessWidget {
                     color: theme.colorScheme.onSurface,
                   ),
                   children: [
-                    const TextSpan(text: 'Weather'),
+                    const TextSpan(text: AppStrings.appNamePrefix),
                     TextSpan(
-                      text: 'Now',
+                      text: AppStrings.appNameSuffix,
                       style: TextStyle(color: theme.colorScheme.primary),
                     ),
                   ],
@@ -36,7 +37,7 @@ class HomeHeader extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Know today. Plan better.',
+                AppStrings.appTagline,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(

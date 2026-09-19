@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../../core/location/location_permission_status.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -19,7 +20,7 @@ class LocationPermissionsSection extends ConsumerWidget {
     final statusAsync = ref.watch(locationPermissionStatusProvider);
 
     return SettingsSectionCard(
-      title: 'Location & Permissions',
+      title: AppStrings.locationAndPermissions,
       icon: Icons.location_on_outlined,
       children: [
         statusAsync.when(
@@ -27,15 +28,21 @@ class LocationPermissionsSection extends ConsumerWidget {
             label: _labelFor(status),
             granted: status == LocationPermissionStatus.granted,
           ),
-          loading: () => const _StatusRow(label: 'Checking…', granted: false),
-          error: (_, _) => const _StatusRow(label: 'Unknown', granted: false),
+          loading: () => const _StatusRow(
+            label: AppStrings.permissionChecking,
+            granted: false,
+          ),
+          error: (_, _) => const _StatusRow(
+            label: AppStrings.permissionUnknown,
+            granted: false,
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
         OutlinedButton.icon(
           key: const Key('manageLocationPermissionButton'),
           onPressed: () => _handleTap(ref, statusAsync.value),
           icon: const Icon(Icons.settings_outlined, size: 18),
-          label: const Text('Manage Location Permission'),
+          label: const Text(AppStrings.manageLocationPermission),
         ),
       ],
     );
@@ -63,11 +70,11 @@ class LocationPermissionsSection extends ConsumerWidget {
 
   String _labelFor(LocationPermissionStatus status) {
     return switch (status) {
-      LocationPermissionStatus.granted => 'Allowed',
-      LocationPermissionStatus.denied => 'Not allowed yet',
-      LocationPermissionStatus.deniedForever =>
-        'Denied — enable from system settings',
-      LocationPermissionStatus.serviceDisabled => 'Location services are off',
+      LocationPermissionStatus.granted => AppStrings.permissionAllowed,
+      LocationPermissionStatus.denied => AppStrings.permissionNotAllowedYet,
+      LocationPermissionStatus.deniedForever => AppStrings.permissionDenied,
+      LocationPermissionStatus.serviceDisabled =>
+        AppStrings.locationServicesOff,
     };
   }
 }

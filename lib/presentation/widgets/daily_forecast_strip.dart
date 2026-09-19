@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -8,8 +9,6 @@ import '../screens/forecast_detail_screen.dart';
 import '../utils/daily_forecast_aggregator.dart';
 import '../utils/format_temperature.dart';
 import '../utils/weather_condition_icon.dart';
-
-const _weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 /// A horizontally scrolling strip of daily forecast cards. The first
 /// entry is always labeled "Today" regardless of the actual weekday.
@@ -66,8 +65,8 @@ class DailyForecastStrip extends StatelessWidget {
             itemBuilder: (context, index) {
               final day = days[index];
               final label = index == 0
-                  ? 'Today'
-                  : _weekdayLabels[day.date.weekday - 1];
+                  ? AppStrings.today
+                  : AppStrings.weekdayLabels[day.date.weekday - 1];
 
               return _DayCard(
                 label: label,
@@ -120,7 +119,7 @@ class _DayCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '$label forecast details',
+      label: AppStrings.forecastDetails(label),
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(

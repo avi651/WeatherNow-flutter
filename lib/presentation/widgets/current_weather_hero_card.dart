@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
@@ -196,7 +197,9 @@ class CurrentWeatherHeroCard extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.xs),
                   Flexible(
                     child: Text(
-                      'Feels like ${formatTemperature(weather.feelsLikeCelsius, unit)}',
+                      AppStrings.feelsLikeValue(
+                        formatTemperature(weather.feelsLikeCelsius, unit),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(

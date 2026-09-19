@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
@@ -78,7 +79,7 @@ class HomeScreen extends ConsumerWidget {
       final error = weatherState.error ?? forecastState.error;
       final message = error is HomeWeatherFailureException
           ? error.message
-          : 'Something went wrong. Please try again.';
+          : AppStrings.genericError;
       void retry() {
         ref.read(homeWeatherProvider.notifier).retry();
         ref.read(homeForecastProvider.notifier).retry();
@@ -135,7 +136,8 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.lg),
                       CurrentWeatherHeroCard(
                         weather: weather,
-                        locationName: activeCity?.name ?? 'Current Location',
+                        locationName:
+                            activeCity?.name ?? AppStrings.currentLocation,
                         country: activeCity?.country ?? '',
                         isFavorite: isFavorite,
                         onFavoriteToggle: () {
@@ -158,7 +160,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
-                            '5 Day Forecast',
+                            AppStrings.fiveDayForecast,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
@@ -168,7 +170,8 @@ class HomeScreen extends ConsumerWidget {
                       DailyForecastStrip(
                         days: dailySummaries,
                         unit: temperatureUnit,
-                        locationName: activeCity?.name ?? 'Current Location',
+                        locationName:
+                            activeCity?.name ?? AppStrings.currentLocation,
                       ),
                     ],
                   ),
@@ -252,7 +255,7 @@ class _LocationFailedState extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: const Text(AppStrings.retry),
             ),
           ),
         ],

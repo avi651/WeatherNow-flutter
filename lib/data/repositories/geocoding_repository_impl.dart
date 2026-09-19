@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:weather_now_flutter/core/constants/app_strings.dart';
 
 import '../../core/error/data_failures.dart';
 import '../../core/error/failures.dart';
@@ -43,9 +44,7 @@ class GeocodingRepositoryImpl implements GeocodingRepository {
       );
 
       if (results.isEmpty) {
-        throw GeocodingApiException(
-          'No location found for the given coordinates.',
-        );
+        throw GeocodingApiException(AppStrings.noLocationForCoordinates);
       }
 
       return CitySuggestionModel.fromJson(results.first).toEntity();
