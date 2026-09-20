@@ -6,6 +6,7 @@ import '../../core/theme/app_breakpoints.dart';
 import '../../core/theme/app_spacing.dart';
 import '../providers/active_city_provider.dart';
 import '../providers/connectivity_provider.dart';
+import '../providers/current_location_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/home_forecast_provider.dart';
 import '../providers/home_weather_exception.dart';
@@ -89,7 +90,13 @@ class HomeScreen extends ConsumerWidget {
       // location; keep the search bar on screen so the user can search
       // instead of being stuck behind a lone Retry button.
       body = ref.watch(selectedCityProvider) == null
-          ? _LocationFailedState(message: message, onRetry: retry)
+          ? _LocationFailedState(
+              message: message,
+              onRetry: retry,
+              // GPS may have resolved while the weather API itself failed
+              // (e.g. an invalid API key): don't blame the location then.
+              locationResolved: ref.watch(currentLocationProvider).hasValue,
+            )
           : WeatherErrorView(message: message, onRetry: retry);
     } else {
       final weather = weatherState.value!;
@@ -218,9 +225,14 @@ class HomeScreen extends ConsumerWidget {
 /// resolved (denied, disabled, timed out): the failure message with Retry,
 /// plus the search bar so a city can be searched instead.
 class _LocationFailedState extends StatelessWidget {
-  const _LocationFailedState({required this.message, required this.onRetry});
+  const _LocationFailedState({
+    required this.message,
+    required this.onRetry,
+    required this.locationResolved,
+  });
 
   final String message;
+  final bool locationResolved;
   final VoidCallback onRetry;
 
   @override
@@ -238,7 +250,9 @@ class _LocationFailedState extends StatelessWidget {
           const WeatherSearchBar(),
           const SizedBox(height: AppSpacing.xl),
           Icon(
-            Icons.location_off_outlined,
+            locationResolved
+                ? Icons.cloud_off_outlined
+                : Icons.location_off_outlined,
             size: 48,
             color: theme.colorScheme.onSurfaceVariant,
           ),
