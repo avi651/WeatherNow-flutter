@@ -18,6 +18,7 @@
 
     <application
         android:label="weather_now_flutter"
+        android:allowBackup="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

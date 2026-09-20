@@ -16,6 +16,10 @@ class HiveBoxes {
 
   static const _all = [favorites, currentWeatherCache, forecastCache, settings];
 
+  /// Every box name, for code that must treat all boxes uniformly (e.g. the
+  /// encryption migration in `SecureHiveInitializer`).
+  static List<String> get names => _all;
+
   /// Opens every box the app needs. Safe to call once at startup — Hive
   /// itself (`Hive.init`/`Hive.initFlutter`) must already have run.
   ///

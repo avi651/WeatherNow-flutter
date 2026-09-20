@@ -86,11 +86,3 @@ user flows.
 ### Fix
 I separated the state responsibilities so each action updates only the
 required state.
-
-## Conclusion
-
-This experience helped me understand that AI-generated code should be
-treated as a starting point rather than a final solution. I used code
-review, manual testing, runtime logs, and Flutter tests to identify
-issues and verify the fixes while maintaining the existing Clean
-Architecture and project structure.
