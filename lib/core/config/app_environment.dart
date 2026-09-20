@@ -11,9 +11,9 @@ class AppEnvironment {
     defaultValue: '',
   );
 
-  static const geocodingBaseUrl = String.fromEnvironment(
+  static const String geocodingBaseUrl = String.fromEnvironment(
     'GEOCODING_BASE_URL',
-    defaultValue: 'https://api.openweathermap.org/geo/1.0',
+    defaultValue: '',
   );
 
   static const String apiKey = String.fromEnvironment(
