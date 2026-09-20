@@ -1,4 +1,4 @@
-# AI-Assisted Development: Issues and Fixes
+# CLAUDE-Assisted Development: Issues and Fixes
 
 During the development of the WeatherNow Flutter application, I used AI
 to support implementation and debugging. I reviewed and tested the
@@ -12,7 +12,7 @@ expected application behavior.
 The app should detect the user's current location during startup and
 display the corresponding city's weather.
 
-### AI Issue
+### CLAUDE Issue
 The AI changed the automatic location flow to a tap-only flow.
 
 ### How I Identified It
@@ -28,7 +28,7 @@ with proper error handling.
 ### Requirement
 The app should display the correct city based on the user's location.
 
-### AI Issue
+### CLAUDE Issue
 The startup logic sometimes selected an incorrect city because of issues
 with mock location matching and saved city handling.
 
@@ -46,7 +46,7 @@ searches from favorites.
 After selecting a city, the suggestions dropdown should close and the
 selected city's weather should be displayed.
 
-### AI Issue
+### CLAUDE Issue
 The dropdown remained visible after selecting a city.
 
 ### How I Identified It
@@ -61,7 +61,7 @@ field, and load the selected city's weather.
 ### Requirement
 The app should not remain stuck while waiting for a location response.
 
-### AI Issue
+### CLAUDE Issue
 The location request could remain pending in the iOS Simulator,
 leaving the app on the loading screen.
 
@@ -76,7 +76,7 @@ I added a 15-second timeout, proper error handling, and a Retry option.
 ### Requirement
 Startup location, search, and favorite actions should work independently.
 
-### AI Issue
+### CLAUDE Issue
 Some changes affected multiple states, making the behavior inconsistent.
 
 ### How I Identified It
