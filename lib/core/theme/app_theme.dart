@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
+
 /// Centralized theme definitions for the app.
 ///
 /// Builds a premium, weather-app-appropriate dark palette from a single
@@ -10,7 +12,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  static const _seedColor = Color(0xFF4F8FFF);
+  static const _seedColor = AppColors.seed;
 
   static ThemeData get dark {
     final seeded = ColorScheme.fromSeed(
@@ -19,16 +21,16 @@ class AppTheme {
     );
 
     final colorScheme = seeded.copyWith(
-      surface: const Color(0xFF0D1B2A),
-      surfaceContainerLowest: const Color(0xFF071019),
-      surfaceContainerLow: const Color(0xFF122238),
-      surfaceContainer: const Color(0xFF17293F),
-      surfaceContainerHigh: const Color(0xFF1E3350),
-      surfaceContainerHighest: const Color(0xFF264063),
-      outline: const Color(0xFF3A4F72),
-      outlineVariant: const Color(0xFF223353),
-      secondary: const Color(0xFF6FD6FF),
-      tertiary: const Color(0xFFFFB871),
+      surface: AppColors.darkSurface,
+      surfaceContainerLowest: AppColors.darkSurfaceContainerLowest,
+      surfaceContainerLow: AppColors.darkSurfaceContainerLow,
+      surfaceContainer: AppColors.darkSurfaceContainer,
+      surfaceContainerHigh: AppColors.darkSurfaceContainerHigh,
+      surfaceContainerHighest: AppColors.darkSurfaceContainerHighest,
+      outline: AppColors.darkOutline,
+      outlineVariant: AppColors.darkOutlineVariant,
+      secondary: AppColors.darkSecondary,
+      tertiary: AppColors.darkTertiary,
     );
 
     final baseTextTheme = ThemeData(brightness: Brightness.dark).textTheme;
@@ -120,8 +122,8 @@ class AppTheme {
     );
 
     final colorScheme = seeded.copyWith(
-      secondary: const Color(0xFF3E7CB1),
-      tertiary: const Color(0xFFB56A2C),
+      secondary: AppColors.lightSecondary,
+      tertiary: AppColors.lightTertiary,
     );
 
     final baseTextTheme = ThemeData(brightness: Brightness.light).textTheme;
